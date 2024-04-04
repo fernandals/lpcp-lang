@@ -1,0 +1,113 @@
+<module> ::= MODULE ID SEP <assignments>
+
+<assignments> ::= <assignment> SEP <assignments>
+    	| <assignment>
+<assign> ::= <var_assign> | <fun_assign>
+<var_assign> ::= <single_var> | <mult_var>
+<single_var> ::= <modifier> ID ':' <type> '=' <expr>
+<mult_var> ::= <modifier> <ids> ':' <type> '=' <list>
+<modifier> ::= LET | MUT
+<ids> ::= <id> ',' <ids> | ID
+
+<type> ::= <regular_type> | <compound_type> | <fun_type>
+<regular_type> ::= INT_TYPE | BOOL_TYPE | FLOAT_TYPE | DOUBLE_TYPE | CHAR_TYPE | ...
+<compound_type> ::= LIST_TYPE | ARRAY_TYPE | STRING_TYPE | TUPLE_TYPE | MATRIX_TYPE | ...
+<fun_type> ::= '(' <types> ')' ARROW <type>
+<types> ::= <type> ',' <types>
+    | <type>
+<literal_value> ::= INT_LITERAL | BOOL_LITERAL | FLOAT_LITERAL | DOUBLE_LITERAL | CHAR_LITERAL
+   	 | <list> | <tuple> | <string>
+
+<list> ::= '[' <list_body> ']'
+<list_body> ::= <expr_body> | <list_comprehension>
+<expr_body> ::= <expr> ',' <expr_body>
+    	| <expr>
+    	|
+<list_comprehension> ::= <expr> '|' <generator>
+<generator> ::= ID IN <expr>
+
+<tuple> ::= '(' <tuple_body> ')'
+<tuple_body> ::= <expr> ',' <tuple_body>
+     	| <expr>
+
+<string> ::= '"' <string_body> '"'
+<string_body> ::= CHAR <string_body>
+
+<fun_assignment> ::= LET ID '(' <params> ')' ARROW <type> '=' <block>
+<params> ::= <param> ',' <params>
+     | <param>
+<param> ::= ID ':' <type>
+
+<block> ::= '{' <statements> '}'
+
+<statements> ::= <statement> SEP <statement>
+     	| <statement>
+<statement> ::= <var_assign>
+    	| <expr>
+    	| <for_loop>
+    	| <while_loop>
+    	| RETURN <expr>
+	| CONTINUE
+	| BREAK
+	| <post_assign>
+
+<post_assign> ::= ID '=' <expr>
+
+<while_loop> ::= WHILE <boolean_expr> DO <block>
+<for_loop> ::= FOR <generator> DO <block>
+<loop_expr> ::= LOOP <block>
+
+<match_expr> ::= MATCH '{' <arms> '}'
+<arms> ::= <pattern> ',' <arms>
+   	| <pattern>
+<pattern> ::= <expr> PATTERN_ARROW <block>
+      | '_' PATTERN_ARROW <block>
+
+<if_expr> ::= IF <bool_expr> THEN <block> <elifs> <else>
+<elifs> ::= ELIF <bool_expr> <block> <elifs>
+   	|
+<else> ::= ELSE <block>
+   	|
+
+<lambda_expr> ::= LAMBDA <ids> <block>
+
+<function_call> ::= ID '(' <exprs> ')'
+
+<exprs> ::= <expr> ',' <exprs>
+    | <expr>
+<expr> ::= <expr_atom>
+   	| <arith_expr>
+   	| <bool_expr>
+   	| <lambda_expr>
+<expr_atom> ::= <if_expr>
+    	| <loop_expr>
+    	| <match_expr>
+    	| <block>
+    	| <function_call>
+    	| <literal_value>
+    	| ID
+
+<arith_expr> ::= <arith_expr> '+' <term>
+     | <arith_expr> '-' <term>
+     | <term>
+<term> ::= <term> '*' <factor>
+   	| <term> '/' <factor>
+   	| <factor>
+<factor> ::= <base> POW <factor>
+     | <base>
+<base> ::= '(' <arith_expr> ')'
+   	| <expr_atom>
+
+<bool_expr> ::= <bool_expr> OR <b_term>
+    	| <bool_expr> XOR <b_term>
+    	| <b_term>
+<b_term> ::= <b_term> AND <not_factor> 
+     | <not_factor>
+<not_factor> ::= NOT <b_factor>
+     	| <b_factor>
+<b_factor> ::= '(' <bool_expr> ')'
+   	| <relation>
+   	| <expr_atom>
+<relation> ::= <arith_expr> <relop> <arith_expr>
+<relop> ::= LEQ | GEQ | LESS | GREATER | EQ | NEQ
+
