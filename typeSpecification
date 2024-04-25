@@ -1,0 +1,70 @@
+int 
+Faixa de valores: -2147483648 a 2147483647
+Operações: +, -, *, %, /, ^
+Relações: <, >, <=, >=, ==
+Funções: toFloat, toStr, abs
+
+long 
+Faixa de valores: ilimitada
+Operações: +, -, *, %, /, ^
+Relações: <, >, <=, >=, ==
+Funções: toFloat, toStr, abs
+
+float
+Faixa de valores: 3.4E-38 a 3.4E+38 
+Operações: +, -, *, /, ^ (expoente inteiro)
+Relações: <, >, <=, >=, ==
+Funções: toInt, toStr, toDouble, abs, ceil, floor
+
+double 
+Faixa de valores: 1.7E-308 a 1.7E+308 
+Operações: +, -, *, /, ^ (expoente inteiro)
+Relações: <, >, <=, >=, ==
+Funções: toInt, toStr, toFloat, abs, ceil, floor
+
+boolean 
+Valores: true, false
+Operações: and, or, not, xor 
+Relações: ==
+
+char
+Relações: <, >, <=, >=, ==
+Funções: chr, ord , toString, toUpper, toLower
+
+string
+Operações: ++, [ start [, end [, step ] ] ] (slice), <: (append), :> (cons)  
+ex: str[1] ou str[1,6] ou str[1, 6, 2] 
+Relações: <, >, <=, >=, == (ordem lexicográfica)
+Funções: length, reverse, capitalize, toUpper, toLower, split(sep, str), trim
+
+lista
+Operações: +, -, *, /, ++, [ start [, end [, step ] ] ] (slice), <: (append), :> (cons) 
+Relações: <, >, <=, >=, == (pairwise)
+Funções: length, reverse, popFront, popBack, insert(idx, list), head, tail, indexOf(elem, list), clear
+
+tupla
+Operações: +, -, *, /, [idx]
+Relações: <, >, <=, >=, == (pointwise)
+Funções: first, second, toList
+
+matriz
+Operações: +, *, -, [ start [, end [, step ] ] ]... (slice)
+ex: mtx[1, 5, 1][3, 4, 1] (retorna um recorte das 5 primeiras linhas contendo os elementos das colunas 3 e 4 de mtx, retornando uma matriz 5x2)
+Relações: ==, <, >, <=, >= 
+Funções:  inv, transp, zeros, ones, det
+
+maybe
+Valores: Nothing, Just A
+Operações: Caso um dos lados da operação seja Nothing o resultado é sempre Nothing; caso ambos sejam Just A, utilizam-se as operações associadas ao tipo A.
+Relações: <, >, <=, >=, ==
+Funções: isNothing, isJust
+
+table
+Operações: [key]
+Funções: clear, values, keys, pairs, delete(key), merge
+
+either A B
+Valores: Left A, Right B
+Operações: As operações são definidas baseado no tipo e só são executadas quando os tipos são compatíveis.
+Relações: <, >, <=, >=, ==
+Funções: isLeft, isRight 
