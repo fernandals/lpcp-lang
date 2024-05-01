@@ -1,0 +1,14 @@
+module RelationalOperator
+
+let main () -> () = {
+    
+    let x : int = 10
+    let y : int = 20
+
+    if x < y then {
+	print?
+    } else {
+	print?
+    }
+
+}

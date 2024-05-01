@@ -1,0 +1,9 @@
+module HelloWorld 
+
+-- this is the hello world program
+
+let main () -> () { 
+    let str : string = "Hello, World!"
+
+    -- print(str)
+}
