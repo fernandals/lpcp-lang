@@ -1,9 +1,0 @@
-module main 
-
---coment
-
-mut x : int = 2 ;
-
-while verdade do {
-  x = x + 1
-}
