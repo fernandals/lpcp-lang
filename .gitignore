@@ -1,3 +1,4 @@
 tmp/
 *.o
 *.hi
+Main

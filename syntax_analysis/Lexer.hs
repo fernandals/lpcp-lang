@@ -21618,7 +21618,10 @@ data Token
     | Begin Pos
     | End Pos
     | Id Pos String
-    deriving ( Eq, Show )
+    deriving ( Show )
+
+instance Eq Token where
+    (Id _ s) == (Id _ s') = s == s'
 
 -- helpers
 readbool :: String -> Bool

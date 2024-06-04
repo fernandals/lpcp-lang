@@ -8,6 +8,7 @@ import System.IO.Unsafe
 main :: IO ()
 main = do
   (file : _) <- getArgs
-  case parser $ getTokens file of
+  parsed <- parser $ getTokens file
+  case parsed of
     Left e -> print e
-    Right ans -> print ans
+    Right ans -> print () -- print ans

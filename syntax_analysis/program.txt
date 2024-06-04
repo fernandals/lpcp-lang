@@ -1,3 +1,6 @@
 module main
 
-let x : int = 5
+mut x : int = 5
+let y : int = 6
+x = 77
+y = 55
