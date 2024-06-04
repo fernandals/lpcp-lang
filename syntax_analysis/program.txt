@@ -1,6 +1,0 @@
-module main
-
-mut x : int = 5
-let y : int = 6
-x = 77
-y = 55
