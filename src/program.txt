@@ -1,7 +1,9 @@
 module program
 
-mut x : int = 1.0
-mut y : int = (1 + 2) ^ (1 + 1)
+mut x : int = 1
+mut y : int = (2 * 2) ^ (1 + 1)
+
+x = 3 + 5
 
 
 

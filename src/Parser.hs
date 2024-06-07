@@ -16,7 +16,7 @@ varDecl = do
   colon <- colonToken
   decltype <- intToken <|> floatToken
   assign <- assignToken
-  expr <- try binArithExpr <|> atomExpr
+  expr <- try binArithExpr
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState
@@ -95,7 +95,6 @@ evalBaseRemaining n1 = do
   return (result) 
   <|> return (n1) 
 
-
 evalArith :: Token -> Token -> Token -> Token
 evalArith (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
 evalArith (IntL p x) (Minus _) (IntL r y) = IntL p (x - y)
@@ -103,13 +102,19 @@ evalArith (IntL p x) (Times _) (IntL r y) = IntL p (x * y)
 evalArith (IntL p x) (Divides _) (IntL r y) = IntL p (x `div` y)
 evalArith (IntL p x) (Pow _) (IntL r y) = IntL p (x ^ y)
 
+
+evalVar :: ParsecT [Token] State IO Token
+evalVar = do
+  id <- intToken
+  σ <- getState
+  return (getValue id σ)
 -- ---------------------------------------------------
 
 assign :: ParsecT [Token] State IO [Token]
 assign = do
   name <- idToken
   assign <- assignToken
-  expr <- intLToken
+  expr <- try binArithExpr
 
   updateState $ stateUpdate (name, expr)
   σ <- getState
