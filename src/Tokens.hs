@@ -39,11 +39,23 @@ intToken = tokenPrim show updatePos get_token
   where
     get_token (Int pos) = Just $ Int pos
     get_token _ = Nothing
+  
+floatToken :: ParsecT [Token] st IO Token
+floatToken = tokenPrim show updatePos get_token
+  where
+    get_token (Float pos) = Just $ Float pos
+    get_token _ = Nothing
 
 intLToken :: ParsecT [Token] st IO Token
 intLToken = tokenPrim show updatePos get_token
   where
     get_token (IntL pos n) = Just $ IntL pos n
+    get_token _ = Nothing
+
+floatLToken :: ParsecT [Token] st IO Token
+floatLToken = tokenPrim show updatePos get_token
+  where
+    get_token (FloatL pos n) = Just $ FloatL pos n
     get_token _ = Nothing
 
 letToken :: ParsecT [Token] st IO Token
@@ -74,6 +86,49 @@ elifToken :: ParsecT [Token] st IO Token
 elifToken = tokenPrim show updatePos get_token
   where
     get_token (Elif pos) = Just $ Elif pos
+    get_token _ = Nothing
+
+-- Tokens para exp arimimeticas
+plusToken :: ParsecT [Token] st IO Token
+plusToken = tokenPrim show updatePos get_token
+  where
+    get_token (Plus pos) = Just $ Plus pos
+    get_token _ = Nothing
+
+minusToken :: ParsecT [Token] st IO Token
+minusToken = tokenPrim show updatePos get_token
+  where
+    get_token (Minus pos) = Just $ Minus pos
+    get_token _ = Nothing
+
+timesToken :: ParsecT [Token] st IO Token
+timesToken = tokenPrim show updatePos get_token
+  where
+    get_token (Times pos) = Just $ Times pos
+    get_token _ = Nothing
+
+dividesToken :: ParsecT [Token] st IO Token
+dividesToken = tokenPrim show updatePos get_token
+  where
+    get_token (Divides pos) = Just $ Divides pos
+    get_token _ = Nothing
+
+powToken :: ParsecT [Token] st IO Token
+powToken = tokenPrim show updatePos get_token
+  where
+    get_token (Pow pos) = Just $ Pow pos
+    get_token _ = Nothing
+
+beginpToken :: ParsecT [Token] st IO Token
+beginpToken = tokenPrim show updatePos get_token
+  where
+    get_token (BeginP pos) = Just $ BeginP pos
+    get_token _ = Nothing
+
+endpToken :: ParsecT [Token] st IO Token
+endpToken = tokenPrim show updatePos get_token
+  where
+    get_token (EndP pos) = Just $ EndP pos
     get_token _ = Nothing
 
 updatePos :: SourcePos -> Token -> [Token] -> SourcePos

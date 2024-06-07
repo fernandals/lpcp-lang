@@ -44,6 +44,8 @@ tokens :-
   \*                                      { \p s -> Times $ getLC p }
   \/                                      { \p s -> Divides $ getLC p }
   \^                                      { \p s -> Pow $ getLC p }
+  "("                                     { \p s -> BeginP $ getLC p }
+  ")"                                     { \p s -> EndP $ getLC p }
 
   -- Boolean operators
  "or"                                     { \p s -> Or $ getLC p }
@@ -117,6 +119,8 @@ data Token
     | Assign Pos
     | Begin Pos
     | End Pos
+    | BeginP Pos
+    | EndP Pos
     | Id Pos String
     deriving ( Show )
 
