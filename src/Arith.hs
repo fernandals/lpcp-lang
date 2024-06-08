@@ -11,13 +11,12 @@ type ParsecTStateT = ParsecT [Token] State IO(Token)
 
 atomExpr :: ParsecT [Token] State IO(Token)
 atomExpr = do 
-   n <- intLToken 
+    n <- intLToken 
         <|> floatLToken 
         <|> idToken 
         <|> convToFloat 
         <|> convAbs
-   evalVar n
-
+    evalVar n
 
 evalVar :: Token -> ParsecT [Token] State IO Token
 evalVar (Id p id) = do
@@ -49,54 +48,54 @@ negValue _ = error "is not a value"
 
 evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalBinRemaining n1 = do
-  op <- plusToken <|> minusToken
-  n2 <- termArithExpr
-  result <- evalBinRemaining (evalArith n1 op n2)
-  return (result) 
-  <|> return (n1) 
+    op <- plusToken <|> minusToken
+    n2 <- termArithExpr
+    result <- evalBinRemaining (evalArith n1 op n2)
+    return (result) 
+    <|> return (n1) 
 
 termArithExpr :: ParsecT [Token] State IO(Token)
 termArithExpr = do
-   n1 <- powArithExpr
-   result <- evalTermRemaining n1
-   return (result)
+    n1 <- powArithExpr
+    result <- evalTermRemaining n1
+    return (result)
 
 evalTermRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalTermRemaining n1 = do
-  op <- timesToken <|> dividesToken
-  n2 <- powArithExpr
-  result <- evalTermRemaining (evalArith n1 op n2)
-  return (result) 
-  <|> return (n1) 
+    op <- timesToken <|> dividesToken
+    n2 <- powArithExpr
+    result <- evalTermRemaining (evalArith n1 op n2)
+    return (result) 
+    <|> return (n1) 
 
 powArithExpr :: ParsecT [Token] State IO(Token)
 powArithExpr = do
-   n1 <- try bracketExpr <|> atomExpr
-   result <- evalPowRemaining n1
-   return (result)
+    n1 <- try bracketExpr <|> atomExpr
+    result <- evalPowRemaining n1
+    return (result)
 
 evalPowRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalPowRemaining n1 = do
-  op <- powToken
-  n2 <- try bracketExpr <|>  atomExpr
-  result <- evalPowRemaining (evalArith n1 op n2)
-  return (result) 
-  <|> return (n1) 
+    op <- powToken
+    n2 <- try bracketExpr <|>  atomExpr
+    result <- evalPowRemaining (evalArith n1 op n2)
+    return (result) 
+    <|> return (n1) 
 
 bracketExpr :: ParsecT [Token] State IO(Token)
 bracketExpr = do
-  l <- beginpToken
-  expr <- binArithExpr <|> unaArithExpr
-  r <- endpToken
-  return (expr)
+    l <- beginpToken
+    expr <- binArithExpr <|> unaArithExpr
+    r <- endpToken
+    return (expr)
 
 evalRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalRemaining n1 = do
-  op <- powToken
-  n2 <- atomExpr
-  result <- evalRemaining(evalArith n1 op n2)
-  return (result) 
-  <|> return (n1) 
+    op <- powToken
+    n2 <- atomExpr
+    result <- evalRemaining(evalArith n1 op n2)
+    return (result) 
+    <|> return (n1) 
 
 --teste git 
 -- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
