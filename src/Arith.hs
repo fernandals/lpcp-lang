@@ -16,16 +16,8 @@ atomExpr = do
         <|> idToken 
         <|> convToFloat 
         <|> convAbs
-        <|> unaOnBinArithExpr
    evalVar n
 
-unaOnBinArithExpr :: ParsecT [Token] State IO(Token) 
-unaOnBinArithExpr = do
-    l <- beginpToken
-    op <- minusToken
-    n1 <- intLToken <|> idToken -- em caso de -id precisa pensar ainda
-    r <- beginpToken
-    return (n1)
 
 evalVar :: Token -> ParsecT [Token] State IO Token
 evalVar (Id p id) = do
@@ -42,8 +34,18 @@ binArithExpr = do
 unaArithExpr :: ParsecT [Token] State IO(Token) 
 unaArithExpr = do
    op <- minusToken
-   n1 <- intLToken <|> idToken -- em caso de -id precisa pensar ainda
-   return (n1)
+   n1 <- intLToken <|> floatLToken <|> idToken -- em caso de -id precisa pensar ainda
+   σ <- getState
+   case n1 of
+    IntL p i -> return (IntL p (-i))
+    FloatL p i ->  return (FloatL p (-i))
+    Id p i -> return (negValue (getValue (Id p i) σ))
+    _ -> fail "Expected an integer token"
+
+negValue :: Token -> Token
+negValue (IntL p n) = (IntL p (-n))
+negValue (FloatL p n) = (FloatL p (-n))
+negValue _ = error "is not a value"
 
 evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalBinRemaining n1 = do
@@ -84,7 +86,7 @@ evalPowRemaining n1 = do
 bracketExpr :: ParsecT [Token] State IO(Token)
 bracketExpr = do
   l <- beginpToken
-  expr <- binArithExpr
+  expr <- binArithExpr <|> unaArithExpr
   r <- endpToken
   return (expr)
 
@@ -131,7 +133,7 @@ convToStr = do
   l <- beginpToken
   n <- intLToken
   r <- endpToken
-  return (StringL (pInt n) (show (valueInt n)))
+  return (StringL (pos n) (show (valueInt n)))
 
 convAbs :: ParsecT [Token] State IO(Token)
 convAbs = do 
@@ -139,11 +141,15 @@ convAbs = do
   l <- beginpToken
   n <- intLToken
   r <- endpToken
-  return (IntL (pInt n) (abs (valueInt n)))
+  return (IntL (pos n) (abs (valueInt n)))
 
 valueInt :: Token -> Integer
 valueInt (IntL p n) = n
 valueInt _ = error "Not an integer token"
 
-pInt :: Token -> (Int,Int)
-pInt (IntL p n) = p 
+valueFloat :: Token -> Float
+valueFloat (FloatL p n) = n
+valueFloat _ = error "Not an integer token"
+
+pos :: Token -> (Int,Int)
+pos (IntL p n) = p 

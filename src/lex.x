@@ -69,8 +69,8 @@ tokens :-
 
 
   -- Ids and numbers
-  "-"*$digit+                                 { \p s -> IntL (getLC p) (read s) }
-  "-"*$digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
+  $digit+                                 { \p s -> IntL (getLC p) (read s) }
+ $digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
   \".*\"                                  { \p s -> StringL (getLC p) s }

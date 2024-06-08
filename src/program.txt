@@ -2,5 +2,7 @@ module program
 
 mut x : float = -2.0
 mut y : float = 4.0
+mut z : int = -y
 
-mut d : float = 2.0 ^ -2
+mut d : float = x + (-3.0)
+
