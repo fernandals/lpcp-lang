@@ -16,7 +16,16 @@ atomExpr = do
         <|> idToken 
         <|> convToFloat 
         <|> convAbs
+        <|> unaOnBinArithExpr
    evalVar n
+
+unaOnBinArithExpr :: ParsecT [Token] State IO(Token) 
+unaOnBinArithExpr = do
+    l <- beginpToken
+    op <- minusToken
+    n1 <- intLToken <|> idToken -- em caso de -id precisa pensar ainda
+    r <- beginpToken
+    return (n1)
 
 evalVar :: Token -> ParsecT [Token] State IO Token
 evalVar (Id p id) = do
@@ -29,6 +38,12 @@ binArithExpr = do
    n1 <- termArithExpr
    result <- evalBinRemaining n1
    return (result)
+
+unaArithExpr :: ParsecT [Token] State IO(Token) 
+unaArithExpr = do
+   op <- minusToken
+   n1 <- intLToken <|> idToken -- em caso de -id precisa pensar ainda
+   return (n1)
 
 evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalBinRemaining n1 = do
@@ -81,15 +96,21 @@ evalRemaining n1 = do
   return (result) 
   <|> return (n1) 
 
+
+-- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
+
 evalArith :: Token -> Token -> Token -> Token
 evalArith (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
 evalArith (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
 evalArith (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
 evalArith (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
-evalArith (IntL p x) (Pow _) (IntL r y) =  IntL p (x ^ y)
+evalArith (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
 evalArith (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
 evalArith (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
-
+evalArith (FloatL p x) (Times _) (FloatL r y) =  FloatL p (x * y)
+evalArith (FloatL p x) (Divides _) (FloatL r y) =  FloatL p (x / y)
+evalArith (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else  FloatL p (1 / (x ^ (-y)))
+evalArith _ _ _ = error "Type mismatch"
 
 -- INT: functions
 

@@ -1,6 +1,6 @@
 module program
 
-mut c : int = 1
-mut e : int = 1
+mut x : float = -2.0
+mut y : float = 4.0
 
-mut d : int = c + e
+mut d : float = 2.0 ^ -2
