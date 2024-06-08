@@ -33,5 +33,4 @@ stateDelete query@(id, val) (sym@(_, _, id', val') : σ)
 
 getValue :: Token -> State -> Token
 getValue _ [] = error "No variable with given name."
-getValue id (sym@(mod', t', id', val') : σ)
-  | id == id' = val'
+getValue id (sym@(mod', t', id', val') : σ) = if id == id' then val' else (getValue id σ)

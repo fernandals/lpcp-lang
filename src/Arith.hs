@@ -15,7 +15,6 @@ atomExpr = do
         <|> floatLToken 
         <|> idToken 
         <|> convToFloat 
-        <|> convToStr 
         <|> convAbs
    evalVar n
 
@@ -88,6 +87,9 @@ evalArith (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
 evalArith (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
 evalArith (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
 evalArith (IntL p x) (Pow _) (IntL r y) =  IntL p (x ^ y)
+evalArith (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
+evalArith (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
+
 
 -- INT: functions
 
@@ -95,9 +97,12 @@ convToFloat :: ParsecT [Token] State IO(Token)
 convToFloat = do 
   fun <- toFloatToken
   l <- beginpToken
-  n <- intLToken
+  n <- intLToken <|> idToken <|> binArithExpr
   r <- endpToken
-  return (FloatL (pInt n) (fromIntegral (valueInt n)))
+  nEvaluated <- evalVar n
+  case nEvaluated of
+    IntL p i -> return (FloatL p (fromIntegral i))
+    _ -> fail "Expected an integer token"
 
 convToStr :: ParsecT [Token] State IO(Token)
 convToStr = do 
@@ -116,7 +121,8 @@ convAbs = do
   return (IntL (pInt n) (abs (valueInt n)))
 
 valueInt :: Token -> Integer
-valueInt (IntL p n) = n 
+valueInt (IntL p n) = n
+valueInt _ = error "Not an integer token"
 
 pInt :: Token -> (Int,Int)
 pInt (IntL p n) = p 

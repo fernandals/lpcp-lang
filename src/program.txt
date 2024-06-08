@@ -1,4 +1,6 @@
 module program
 
-mut x : int = 2
-mut y : int = (4^x + 3)
+mut c : int = 1
+mut e : int = 1
+
+mut d : int = c + e
