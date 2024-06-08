@@ -1,9 +1,9 @@
 module program
 
-mut x : int = 1
+mut x : float = toFloat ( 1 )
 mut y : int = (2 * 2) ^ (1 + 1)
-
-x = 3 + 5
+mut a : int = abs ( 1 )
+mut h : int = toStr(1)
 
 
 

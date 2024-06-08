@@ -35,7 +35,7 @@ varDecl = do
 
 atomExpr :: ParsecT [Token] State IO(Token)
 atomExpr = do 
-   n <- intLToken <|> floatLToken <|> intToken <|> floatToken 
+   n <- intLToken <|> floatLToken <|> intToken <|> floatToken <|> convToFloat <|> convToStr <|> convAbs
    return (n)
 
 binArithExpr :: ParsecT [Token] State IO(Token)
@@ -108,7 +108,41 @@ evalVar = do
   id <- intToken
   σ <- getState
   return (getValue id σ)
--- ---------------------------------------------------
+
+
+-- funcoes para os inteiros
+
+convToFloat :: ParsecT [Token] State IO(Token)
+convToFloat = do 
+  fun <- toFloatToken
+  l <- beginpToken
+  n <- intLToken
+  r <- endpToken
+  return (FloatL (pInt n) (fromIntegral (valueInt n)))
+
+convToStr :: ParsecT [Token] State IO(Token)
+convToStr = do 
+  fun <- toStrToken
+  l <- beginpToken
+  n <- intLToken
+  r <- endpToken
+  return (StringL (pInt n) (show (valueInt n)))
+
+convAbs :: ParsecT [Token] State IO(Token)
+convAbs = do 
+  fun <- absToken
+  l <- beginpToken
+  n <- intLToken
+  r <- endpToken
+  return (IntL (pInt n) (abs (valueInt n)))
+
+valueInt :: Token -> Integer
+valueInt (IntL p n) = n 
+
+pInt :: Token -> (Int,Int)
+pInt (IntL p n) = p 
+
+-- -----------------------------------------------
 
 assign :: ParsecT [Token] State IO [Token]
 assign = do

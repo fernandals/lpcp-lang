@@ -53,6 +53,10 @@ tokens :-
  "xor"                                    { \p s -> Xor $ getLC p }
  "not"                                    { \p s -> Not $ getLC p }
 
+ -- int functions 
+ "toFloat"                                { \p s -> ToFloat $ getLC p}
+ "toStr"                                  { \p s -> ToStr $ getLC p}
+ "abs"                                    { \p s -> Abs $ getLC p}
 
   -- Others
   $white+                                 ;
@@ -113,6 +117,10 @@ data Token
     | Or Pos
     | Xor Pos
     | Not Pos
+    -- Funcions
+    | ToFloat Pos
+    | ToStr Pos
+    | Abs Pos
     -- Names and blocks and such
     | Colon Pos
     | SemiColon Pos

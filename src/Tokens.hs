@@ -89,6 +89,7 @@ elifToken = tokenPrim show updatePos get_token
     get_token _ = Nothing
 
 -- Tokens para exp arimimeticas
+
 plusToken :: ParsecT [Token] st IO Token
 plusToken = tokenPrim show updatePos get_token
   where
@@ -129,6 +130,26 @@ endpToken :: ParsecT [Token] st IO Token
 endpToken = tokenPrim show updatePos get_token
   where
     get_token (EndP pos) = Just $ EndP pos
+    get_token _ = Nothing
+
+-- Tokens funcoes 
+
+toFloatToken :: ParsecT [Token] st IO Token
+toFloatToken = tokenPrim show updatePos get_token
+  where
+    get_token (ToFloat pos) = Just $ ToFloat pos
+    get_token _ = Nothing
+
+toStrToken :: ParsecT [Token] st IO Token
+toStrToken = tokenPrim show updatePos get_token
+  where
+    get_token (ToStr pos) = Just $ ToStr pos
+    get_token _ = Nothing
+
+absToken :: ParsecT [Token] st IO Token
+absToken = tokenPrim show updatePos get_token
+  where
+    get_token (Abs pos) = Just $ Abs pos
     get_token _ = Nothing
 
 updatePos :: SourcePos -> Token -> [Token] -> SourcePos
