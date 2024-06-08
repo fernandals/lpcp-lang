@@ -98,7 +98,7 @@ evalRemaining n1 = do
   return (result) 
   <|> return (n1) 
 
-
+--teste git 
 -- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
 
 evalArith :: Token -> Token -> Token -> Token
