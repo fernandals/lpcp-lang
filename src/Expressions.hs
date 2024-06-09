@@ -165,7 +165,7 @@ atomBoolExpr = do
 unaBoolExpr :: ParsecT [Token] State IO(Token) 
 unaBoolExpr= do
    op <- notToken
-   b <- boolLToken <|> idToken <|> bracketBoolExpr --resolver para id
+   b <- boolLToken <|> idToken <|> numberRelation <|> bracketBoolExpr --resolver para id
    σ <- getState
    case b of
     BoolL p i -> return (BoolL p (not i))
