@@ -1,0 +1,3 @@
+module program
+
+mut b : bool = false or (not true and true)

@@ -11,19 +11,13 @@ import Tokens
 
 atomBoolExpr :: ParsecT [Token] State IO(Token)
 atomBoolExpr = do 
-    b <- boolLToken <|> idToken 
+    b <- boolLToken <|> idToken
     return b
-
-binBoolExpr :: ParsecT [Token] State IO(Token)
-binBoolExpr = do
-   b <- atomBoolExpr <|> bracketBoolExpr
-   result <- evalBoolRemaining b
-   return (result)
 
 unaBoolExpr :: ParsecT [Token] State IO(Token) 
 unaBoolExpr= do
    op <- notToken
-   b <- boolLToken <|> idToken --resolver para id
+   b <- boolLToken <|> idToken <|> bracketBoolExpr --resolver para id
    σ <- getState
    case b of
     BoolL p i -> return (BoolL p (not i))
@@ -34,18 +28,39 @@ negBoolValue :: Token -> Token
 negBoolValue (BoolL p b) = (BoolL p (not b))
 negBoolValue _ = error "is not a value"
 
+binBoolExpr :: ParsecT [Token] State IO(Token)
+binBoolExpr = do
+   b <-  termBoolExpr
+   result <- evalBoolRemaining b
+   return (result)
+
 evalBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalBoolRemaining b = do
-    op <- andToken <|> orToken <|> xorToken
-    d <- atomBoolExpr <|> bracketBoolExpr
+    op <- orToken <|> xorToken
+    d <- termBoolExpr
     result <- evalBoolRemaining (evalBool b op d)
     return (result) 
     <|> return (b) 
 
-evalBool :: Token -> Token -> Token -> Token
-evalBool (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
-evalBool (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
-evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
+termBoolExpr :: ParsecT [Token] State IO(Token)
+termBoolExpr = do
+    b <- factorBoolExpr
+    result <- evalTermBoolRemaining b
+    return (result)
+
+evalTermBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalTermBoolRemaining b = do
+    op <- andToken
+    d <- factorBoolExpr
+    result <- evalTermBoolRemaining (evalBool b op d)
+    return (result) 
+    <|> return (b)
+
+factorBoolExpr :: ParsecT [Token] State IO(Token)
+factorBoolExpr = do
+    n1 <- try bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr
+    return (n1)
+
 
 bracketBoolExpr :: ParsecT [Token] State IO(Token)
 bracketBoolExpr = do
@@ -53,3 +68,9 @@ bracketBoolExpr = do
     expr <- binBoolExpr <|> unaBoolExpr
     r <- endpToken
     return (expr)
+
+    
+evalBool :: Token -> Token -> Token -> Token
+evalBool (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
+evalBool (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
+evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
