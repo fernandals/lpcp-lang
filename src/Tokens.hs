@@ -34,6 +34,8 @@ colonToken = tokenPrim show updatePos get_token
     get_token (Colon pos) = Just $ Colon pos
     get_token _ = Nothing
 
+-- Tokens para tipos
+
 intToken :: ParsecT [Token] st IO Token
 intToken = tokenPrim show updatePos get_token
   where
@@ -46,6 +48,12 @@ floatToken = tokenPrim show updatePos get_token
     get_token (Float pos) = Just $ Float pos
     get_token _ = Nothing
 
+boolToken :: ParsecT [Token] st IO Token
+boolToken = tokenPrim show updatePos get_token
+  where
+    get_token (Bool pos) = Just $ Bool pos
+    get_token _ = Nothing
+
 intLToken :: ParsecT [Token] st IO Token
 intLToken = tokenPrim show updatePos get_token
   where
@@ -56,6 +64,12 @@ floatLToken :: ParsecT [Token] st IO Token
 floatLToken = tokenPrim show updatePos get_token
   where
     get_token (FloatL pos n) = Just $ FloatL pos n
+    get_token _ = Nothing
+
+boolLToken :: ParsecT [Token] st IO Token
+boolLToken = tokenPrim show updatePos get_token
+  where
+    get_token (BoolL pos n) = Just $ BoolL pos n
     get_token _ = Nothing
 
 letToken :: ParsecT [Token] st IO Token
@@ -130,6 +144,32 @@ endpToken :: ParsecT [Token] st IO Token
 endpToken = tokenPrim show updatePos get_token
   where
     get_token (EndP pos) = Just $ EndP pos
+    get_token _ = Nothing
+
+-- Tokens Bool exp
+
+andToken :: ParsecT [Token] st IO Token
+andToken = tokenPrim show updatePos get_token
+  where
+    get_token (And pos) = Just $ And pos
+    get_token _ = Nothing
+
+orToken :: ParsecT [Token] st IO Token
+orToken = tokenPrim show updatePos get_token
+  where
+    get_token (Or pos) = Just $ Or pos
+    get_token _ = Nothing
+
+notToken :: ParsecT [Token] st IO Token
+notToken = tokenPrim show updatePos get_token
+  where
+    get_token (Not pos) = Just $ Not pos
+    get_token _ = Nothing
+
+xorToken :: ParsecT [Token] st IO Token
+xorToken = tokenPrim show updatePos get_token
+  where
+    get_token (Xor pos) = Just $ Xor pos
     get_token _ = Nothing
 
 -- Tokens funcoes 

@@ -9,15 +9,16 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 import Arith
+import BoolExp
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
   name <- idToken
   colon <- colonToken
-  decltype <- intToken <|> floatToken
+  decltype <- intToken <|> floatToken <|> boolToken
   assign <- assignToken
-  expr <- try binArithExpr <|> unaArithExpr 
+  expr <- try binArithExpr <|> unaArithExpr <|> binBoolExpr <|> unaBoolExpr
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState

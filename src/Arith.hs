@@ -7,7 +7,6 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 
-type ParsecTStateT = ParsecT [Token] State IO(Token)
 
 atomExpr :: ParsecT [Token] State IO(Token)
 atomExpr = do 
@@ -33,13 +32,13 @@ binArithExpr = do
 unaArithExpr :: ParsecT [Token] State IO(Token) 
 unaArithExpr = do
    op <- minusToken
-   n1 <- intLToken <|> floatLToken <|> idToken -- em caso de -id precisa pensar ainda
+   n1 <- intLToken <|> floatLToken <|> idToken
    σ <- getState
    case n1 of
     IntL p i -> return (IntL p (-i))
     FloatL p i ->  return (FloatL p (-i))
     Id p i -> return (negValue (getValue (Id p i) σ))
-    _ -> fail "Expected an integer token"
+    _ -> fail "Expected an number token"
 
 negValue :: Token -> Token
 negValue (IntL p n) = (IntL p (-n))
@@ -129,7 +128,7 @@ convToStr :: ParsecT [Token] State IO(Token)
 convToStr = do 
   fun <- toStrToken
   l <- beginpToken
-  n <- intLToken
+  n <- binArithExpr <|> unaArithExpr
   r <- endpToken
   return (StringL (pos n) (show (valueInt n)))
 
@@ -147,7 +146,7 @@ valueInt _ = error "Not an integer token"
 
 valueFloat :: Token -> Float
 valueFloat (FloatL p n) = n
-valueFloat _ = error "Not an integer token"
+valueFloat _ = error "Not an float token"
 
 pos :: Token -> (Int,Int)
 pos (IntL p n) = p 

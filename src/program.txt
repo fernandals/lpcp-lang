@@ -6,3 +6,5 @@ mut c : int = -5
 mut a : int = abs(c+2)
 mut d : float = x ^ 2 - y + toFloat(c+2)
 
+mut b : bool =  true or (false and false)
+mut ba : bool = not b
