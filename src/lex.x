@@ -80,7 +80,7 @@ tokens :-
   $digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
-  \'[$alpha $digit]\'                              { \p s -> CharL (getLC p) (s !! 1)}
+  \'[$alpha $digit]\'                     { \p s -> CharL (getLC p) (s !! 1)}
   \".*\"                                  { \p s -> StringL (getLC p) s }
 
 {

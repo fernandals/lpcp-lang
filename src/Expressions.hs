@@ -1,3 +1,5 @@
+{-# LANGUAGE UnicodeSyntax #-} 
+
 module Expressions where
 
 import Control.Monad.IO.Class (liftIO)
@@ -10,7 +12,7 @@ import Tokens
 
 express :: ParsecT [Token] State IO(Token)
 express = do
-    n <- binArithExpr  <|>  binBoolExpr  <|> unaBoolExpr <|> unaArithExpr  <|>   charLToken
+    n <- try binArithExpr  <|>  try binBoolExpr  <|> try unaBoolExpr <|> try unaArithExpr  <|> charLToken
     return (n)
 
 -- ARITH
@@ -53,11 +55,11 @@ binArithExpr = do
    return (result)
 
 evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalBinRemaining n1 = do
-    op <- plusToken <|> minusToken
-    n2 <- termArithExpr
-    result <- evalBinRemaining (evalArith n1 op n2)
-    return (result) 
+evalBinRemaining n1 = (do
+        op <- plusToken <|> minusToken
+        n2 <- termArithExpr
+        result <- evalBinRemaining (evalArith n1 op n2)
+        return (result))
     <|> return (n1) 
 
 termArithExpr :: ParsecT [Token] State IO(Token)
@@ -67,11 +69,11 @@ termArithExpr = do
     return (result)
 
 evalTermRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalTermRemaining n1 = do
-    op <- timesToken <|> dividesToken
-    n2 <- powArithExpr
-    result <- evalTermRemaining (evalArith n1 op n2)
-    return (result) 
+evalTermRemaining n1 = (do
+        op <- timesToken <|> dividesToken
+        n2 <- powArithExpr
+        result <- evalTermRemaining (evalArith n1 op n2)
+        return (result))
     <|> return (n1) 
 
 powArithExpr :: ParsecT [Token] State IO(Token)
@@ -81,11 +83,11 @@ powArithExpr = do
     return (result)
 
 evalPowRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalPowRemaining n1 = do
-    op <- powToken
-    n2 <- try bracketExpr <|>  atomExpr
-    result <- evalPowRemaining (evalArith n1 op n2)
-    return (result) 
+evalPowRemaining n1 = (do
+        op <- powToken
+        n2 <- try bracketExpr <|>  atomExpr
+        result <- evalPowRemaining (evalArith n1 op n2)
+        return (result))
     <|> return (n1) 
 
 bracketExpr :: ParsecT [Token] State IO(Token)
@@ -96,11 +98,11 @@ bracketExpr = do
     return (expr)
 
 evalRemaining :: Token -> ParsecT [Token] State IO(Token) --nem lembro pra que tinha feito essa, analisar se eh removivel agora
-evalRemaining n1 = do
-    op <- powToken
-    n2 <- atomExpr
-    result <- evalRemaining(evalArith n1 op n2)
-    return (result) 
+evalRemaining n1 = (do
+        op <- powToken
+        n2 <- atomExpr
+        result <- evalRemaining(evalArith n1 op n2)
+        return (result))
     <|> return (n1) 
 
 -- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
@@ -189,11 +191,11 @@ binBoolExpr = do
    return (result)
 
 evalBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalBoolRemaining b = do
-    op <- orToken <|> xorToken
-    d <- termBoolExpr
-    result <- evalBoolRemaining (evalBool b op d)
-    return (result) 
+evalBoolRemaining b = (do
+        op <- orToken <|> xorToken
+        d <- termBoolExpr
+        result <- evalBoolRemaining (evalBool b op d)
+        return (result))
     <|> return (b) 
 
 termBoolExpr :: ParsecT [Token] State IO(Token)
@@ -203,11 +205,11 @@ termBoolExpr = do
     return (result)
 
 evalTermBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalTermBoolRemaining b = do
-    op <- andToken
-    d <- factorBoolExpr
-    result <- evalTermBoolRemaining (evalBool b op d)
-    return (result) 
+evalTermBoolRemaining b = (do
+        op <- andToken
+        d <- factorBoolExpr
+        result <- evalTermBoolRemaining (evalBool b op d)
+        return (result))
     <|> return (b)
 
 factorBoolExpr :: ParsecT [Token] State IO(Token)
@@ -234,9 +236,9 @@ evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (no
 
 relation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
 relation = do 
-    n1 <- try binArithExpr <|> unaArithExpr <|> charLToken
+    n1 <- try binArithExpr <|> try unaArithExpr <|> charLToken
     rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
-    n2 <- try binArithExpr <|> unaArithExpr <|> charLToken
+    n2 <- try binArithExpr <|> try unaArithExpr <|> charLToken
     return (evalRel n1 rel n2)
 
 evalRel :: Token -> Token -> Token  -> Token
