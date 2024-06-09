@@ -234,6 +234,12 @@ numberRelation = do
     return (evalRel n1 rel n2)
 
 evalRel :: Token -> Token -> Token  -> Token
+evalRel (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
+evalRel (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
+evalRel (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
+evalRel (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
+evalRel (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
+evalRel (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (x /= y))
 evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
 evalRel (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))

@@ -1,4 +1,5 @@
 module program
 
-mut b : bool = not 3 != 3 
+--bogou pra esse teste
+mut b : bool = not (3.4 < 3.0) 
 mut n : int = (1+3)
