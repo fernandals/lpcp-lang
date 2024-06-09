@@ -2,5 +2,7 @@ module program
 
 mut b : bool = not (3.0 != 3.0) 
 mut c : char = 'a'
-mut d : bool = 'a' < 'b'
+mut d : bool = ('a' < 'b')
+mut e : bool = false == true 
+mut f : bool = ('a' < 'b') == true --bugou aqui
 

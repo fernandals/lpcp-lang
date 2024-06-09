@@ -242,6 +242,9 @@ relation = do
     return (evalRel n1 rel n2)
 
 evalRel :: Token -> Token -> Token  -> Token
+evalRel (BoolL p x) (Eq r) (BoolL q y) = (BoolL p (x == y))
+evalRel (BoolL p x) (Neq r) (BoolL q y) = (BoolL p (not (x == y)))
+-- FLOAT
 evalRel (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
 evalRel (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
 evalRel (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
