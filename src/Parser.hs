@@ -8,8 +8,7 @@ import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
-import Arith
-import BoolExp
+import Expressions
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
