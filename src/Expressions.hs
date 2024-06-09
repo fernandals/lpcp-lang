@@ -24,16 +24,10 @@ evalVar (Id p id) = do
     return $ getValue (Id p id) σ
 evalVar token = return token
 
-binArithExpr :: ParsecT [Token] State IO(Token)
-binArithExpr = do
-   n1 <- termArithExpr
-   result <- evalBinRemaining n1
-   return (result)
-
 unaArithExpr :: ParsecT [Token] State IO(Token) 
 unaArithExpr = do
    op <- minusToken
-   n1 <- intLToken <|> floatLToken <|> idToken
+   n1 <- intLToken <|> floatLToken <|> idToken  <|> numberRelation
    σ <- getState
    case n1 of
     IntL p i -> return (IntL p (-i))
@@ -45,6 +39,12 @@ negValue :: Token -> Token
 negValue (IntL p n) = (IntL p (-n))
 negValue (FloatL p n) = (FloatL p (-n))
 negValue _ = error "is not a value"
+
+binArithExpr :: ParsecT [Token] State IO(Token)
+binArithExpr = do
+   n1 <- termArithExpr
+   result <- evalBinRemaining n1
+   return (result)
 
 evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalBinRemaining n1 = do
@@ -89,7 +89,7 @@ bracketExpr = do
     r <- endpToken
     return (expr)
 
-evalRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalRemaining :: Token -> ParsecT [Token] State IO(Token) --nem lembro pra que tinha feito essa, analisar se eh removivel agora
 evalRemaining n1 = do
     op <- powToken
     n2 <- atomExpr
@@ -112,7 +112,7 @@ evalArith (FloatL p x) (Divides _) (FloatL r y) =  FloatL p (x / y)
 evalArith (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else  FloatL p (1 / (x ^ (-y)))
 evalArith _ _ _ = error "Type mismatch"
 
--- INT: functions
+-- Int functions
 
 convToFloat :: ParsecT [Token] State IO(Token)
 convToFloat = do 
@@ -206,7 +206,7 @@ evalTermBoolRemaining b = do
 
 factorBoolExpr :: ParsecT [Token] State IO(Token)
 factorBoolExpr = do
-    n1 <- try bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr
+    n1 <- bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr <|> numberRelation
     return (n1)
 
 
@@ -226,8 +226,13 @@ evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (no
 
 -- NUMBER : RELATIONS 
 
-leq :: Token -> Token -> Token
-leq (IntL p x) (IntL q y) = (BoolL p (x <= y))
+numberRelation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
+numberRelation = do 
+    n1 <- try binArithExpr <|> unaArithExpr
+    rel <- leqToken <|> geqToken
+    n2 <- try binArithExpr <|> unaArithExpr
+    return (evalRel n1 rel n2)
 
-geq :: Token -> Token -> Token
-geq (IntL p x) (IntL q y) = (BoolL p (x >= y))
+evalRel :: Token -> Token -> Token  -> Token
+evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
+evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))

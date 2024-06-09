@@ -1,3 +1,4 @@
 module program
 
-mut b : bool = false or (not true and true)
+mut b : bool = not (3 <= 4)
+mut n : int = (1+3)
