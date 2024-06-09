@@ -97,7 +97,6 @@ evalRemaining n1 = do
     return (result) 
     <|> return (n1) 
 
---teste git 
 -- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
 
 evalArith :: Token -> Token -> Token -> Token
@@ -119,7 +118,7 @@ convToFloat :: ParsecT [Token] State IO(Token)
 convToFloat = do 
   fun <- toFloatToken
   l <- beginpToken
-  n <- intLToken <|> idToken <|> binArithExpr
+  n <- binArithExpr <|> unaArithExpr
   r <- endpToken
   nEvaluated <- evalVar n
   case nEvaluated of
@@ -138,7 +137,7 @@ convAbs :: ParsecT [Token] State IO(Token)
 convAbs = do 
   fun <- absToken
   l <- beginpToken
-  n <- intLToken
+  n <- binArithExpr <|> unaArithExpr
   r <- endpToken
   return (IntL (pos n) (abs (valueInt n)))
 

@@ -1,8 +1,8 @@
 module program
 
-mut x : float = -2.0
+mut x : float = 2.0
 mut y : float = 4.0
-mut z : int = -y
-
-mut d : float = x + (-3.0)
+mut c : int = -5
+mut a : int = abs(c+2)
+mut d : float = x ^ 2 - y + toFloat(c+2)
 
