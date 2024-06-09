@@ -1,4 +1,4 @@
 module program
 
-mut b : bool = not (3 <= 4)
+mut b : bool = 3 + 2 <= 4 * 4
 mut n : int = (1+3)

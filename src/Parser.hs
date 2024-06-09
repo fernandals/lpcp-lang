@@ -17,7 +17,7 @@ varDecl = do
   colon <- colonToken
   decltype <- intToken <|> floatToken <|> boolToken
   assign <- assignToken
-  expr <- try binArithExpr <|> unaArithExpr <|> binBoolExpr <|> unaBoolExpr
+  expr <- try binBoolExpr <|> unaBoolExpr <|> binArithExpr <|> unaArithExpr
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState
