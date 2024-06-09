@@ -58,6 +58,10 @@ tokens :-
  "toStr"                                  { \p s -> ToStr $ getLC p}
  "abs"                                    { \p s -> Abs $ getLC p}
 
+ -- int relations
+  ">="                                     { \p s -> Geq $ getLC p }
+  "<="                                     { \p s -> Leq $ getLC p }
+
   -- Others
   $white+                                 ;
   "--".*                                  ;
@@ -121,6 +125,9 @@ data Token
     | ToFloat Pos
     | ToStr Pos
     | Abs Pos
+    -- Relations
+    | Geq Pos
+    | Leq Pos
     -- Names and blocks and such
     | Colon Pos
     | SemiColon Pos

@@ -74,3 +74,12 @@ evalBool :: Token -> Token -> Token -> Token
 evalBool (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
 evalBool (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
 evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
+
+
+-- NUMBER : RELATIONS 
+
+leq :: Token -> Token -> Token
+leq (IntL p x) (IntL q y) = (BoolL p (x <= y))
+
+geq :: Token -> Token -> Token
+geq (IntL p x) (IntL q y) = (BoolL p (x >= y))

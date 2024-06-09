@@ -172,6 +172,20 @@ xorToken = tokenPrim show updatePos get_token
     get_token (Xor pos) = Just $ Xor pos
     get_token _ = Nothing
 
+-- Relations
+
+geqToken :: ParsecT [Token] st IO Token
+geqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Geq pos) = Just $ Geq pos
+    get_token _ = Nothing
+
+leqToken :: ParsecT [Token] st IO Token
+leqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Leq pos) = Just $ Leq pos
+    get_token _ = Nothing
+
 -- Tokens funcoes 
 
 toFloatToken :: ParsecT [Token] st IO Token

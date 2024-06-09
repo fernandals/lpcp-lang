@@ -140,6 +140,7 @@ convAbs = do
   r <- endpToken
   return (IntL (pos n) (abs (valueInt n)))
 
+
 valueInt :: Token -> Integer
 valueInt (IntL p n) = n
 valueInt _ = error "Not an integer token"
@@ -150,3 +151,4 @@ valueFloat _ = error "Not an float token"
 
 pos :: Token -> (Int,Int)
 pos (IntL p n) = p 
+
