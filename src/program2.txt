@@ -1,4 +1,5 @@
 module program
 
 mut b : bool = not (3.0 != 3.0) 
-mut n : int = -(1+2)
+mut c : char = 'a'
+

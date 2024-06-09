@@ -7,6 +7,12 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 
+
+express :: ParsecT [Token] State IO(Token)
+express = do
+    n <- binArithExpr  <|>  binBoolExpr  <|> unaBoolExpr <|> unaArithExpr  <|>   charLToken
+    return (n)
+
 -- ARITH
 
 atomExpr :: ParsecT [Token] State IO(Token)
@@ -160,12 +166,12 @@ pos (IntL p n) = p
 atomBoolExpr :: ParsecT [Token] State IO(Token)
 atomBoolExpr = do 
     b <- boolLToken <|> idToken
-    return b
+    evalVar b
 
 unaBoolExpr :: ParsecT [Token] State IO(Token) 
 unaBoolExpr= do
    op <- notToken
-   b <- boolLToken <|> idToken <|> numberRelation <|> bracketBoolExpr --resolver para id
+   b <- boolLToken <|> idToken <|> relation <|> bracketBoolExpr --resolver para id
    σ <- getState
    case b of
     BoolL p i -> return (BoolL p (not i))
@@ -206,7 +212,7 @@ evalTermBoolRemaining b = do
 
 factorBoolExpr :: ParsecT [Token] State IO(Token)
 factorBoolExpr = do
-    n1 <- bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr <|> numberRelation
+    n1 <- bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr <|> relation
     return (n1)
 
 
@@ -226,11 +232,11 @@ evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (no
 
 -- NUMBER : RELATIONS 
 
-numberRelation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
-numberRelation = do 
-    n1 <- try binArithExpr <|> unaArithExpr
+relation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
+relation = do 
+    n1 <- try binArithExpr <|> unaArithExpr <|> charLToken
     rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
-    n2 <- try binArithExpr <|> unaArithExpr
+    n2 <- try binArithExpr <|> unaArithExpr <|> charLToken
     return (evalRel n1 rel n2)
 
 evalRel :: Token -> Token -> Token  -> Token
@@ -240,9 +246,18 @@ evalRel (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
 evalRel (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
 evalRel (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
 evalRel (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
+-- INT
 evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
 evalRel (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
 evalRel (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
 evalRel (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
 evalRel (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y)) 
+-- CHAR
+evalRel (CharL p x) (Leq r) (CharL q y) = (BoolL p (x <= y))
+evalRel (CharL p x) (Geq r) (CharL q y) = (BoolL p (x >= y))
+evalRel (CharL p x) (Less r) (CharL q y) = (BoolL p (x < y))
+evalRel (CharL p x) (Greater r) (CharL q y) = (BoolL p (x > y))
+evalRel (CharL p x) (Eq r) (CharL q y) = (BoolL p (x == y))
+evalRel (CharL p x) (Neq r) (CharL q y) = (BoolL p (not(x == y))) 
+evalRel _ _ _ = error "Type mismatch"

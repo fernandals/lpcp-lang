@@ -54,6 +54,12 @@ boolToken = tokenPrim show updatePos get_token
     get_token (Bool pos) = Just $ Bool pos
     get_token _ = Nothing
 
+charToken :: ParsecT [Token] st IO Token
+charToken = tokenPrim show updatePos get_token
+  where
+    get_token (Char pos) = Just $ Char pos
+    get_token _ = Nothing
+
 intLToken :: ParsecT [Token] st IO Token
 intLToken = tokenPrim show updatePos get_token
   where
@@ -71,6 +77,13 @@ boolLToken = tokenPrim show updatePos get_token
   where
     get_token (BoolL pos n) = Just $ BoolL pos n
     get_token _ = Nothing
+
+charLToken :: ParsecT [Token] st IO Token
+charLToken = tokenPrim show updatePos get_token
+  where
+    get_token (CharL pos n) = Just $ CharL pos n
+    get_token _ = Nothing
+-- Outros tokens
 
 letToken :: ParsecT [Token] st IO Token
 letToken = tokenPrim show updatePos get_token
@@ -209,6 +222,7 @@ neqToken = tokenPrim show updatePos get_token
   where
     get_token (Neq pos) = Just $ Neq pos
     get_token _ = Nothing
+
 -- Tokens funcoes 
 
 toFloatToken :: ParsecT [Token] st IO Token

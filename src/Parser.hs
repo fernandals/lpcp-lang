@@ -15,9 +15,9 @@ varDecl = do
   modifier <- letToken <|> mutToken
   name <- idToken
   colon <- colonToken
-  decltype <- intToken <|> floatToken <|> boolToken
+  decltype <- intToken <|> floatToken <|> boolToken <|> charToken
   assign <- assignToken
-  expr <- try binBoolExpr <|> unaBoolExpr <|> binArithExpr <|> unaArithExpr
+  expr <- express
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState

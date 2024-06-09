@@ -32,9 +32,8 @@ tokens :-
   -- Types
   "double"                                { \p s -> Type $ getLC p }
   "float"                                 { \p s -> Float $ getLC p }
-  "long"                                  { \p s -> Type $ getLC p }
   "int"                                   { \p s -> Int $ getLC p }
-  "char"                                  { \p s -> Type $ getLC p }
+  "char"                                  { \p s -> Char $ getLC p }
   "string"                                { \p s -> String $ getLC p }
   "bool"                                  { \p s -> Bool $ getLC p }
 
@@ -78,9 +77,10 @@ tokens :-
 
   -- Ids and numbers
   $digit+                                 { \p s -> IntL (getLC p) (read s) }
- $digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
+  $digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
+  \'[$alpha $digit]\'                              { \p s -> CharL (getLC p) (s !! 1)}
   \".*\"                                  { \p s -> StringL (getLC p) s }
 
 {
@@ -109,11 +109,13 @@ data Token
     | Float Pos
     | String Pos
     | Bool Pos
+    | Char Pos
     -- Literals
     | IntL Pos Integer
     | FloatL Pos Float
     | StringL Pos String
     | BoolL Pos Bool
+    | CharL Pos Char
     -- Operators
     | Plus Pos
     | Minus Pos
