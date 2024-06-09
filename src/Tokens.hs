@@ -186,6 +186,29 @@ leqToken = tokenPrim show updatePos get_token
     get_token (Leq pos) = Just $ Leq pos
     get_token _ = Nothing
 
+greaterToken :: ParsecT [Token] st IO Token
+greaterToken = tokenPrim show updatePos get_token
+  where
+    get_token (Greater pos) = Just $ Greater pos
+    get_token _ = Nothing
+
+lessToken :: ParsecT [Token] st IO Token
+lessToken = tokenPrim show updatePos get_token
+  where
+    get_token (Less pos) = Just $ Less pos
+    get_token _ = Nothing
+
+eqToken :: ParsecT [Token] st IO Token
+eqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Eq pos) = Just $ Eq pos
+    get_token _ = Nothing
+
+neqToken :: ParsecT [Token] st IO Token
+neqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Neq pos) = Just $ Neq pos
+    get_token _ = Nothing
 -- Tokens funcoes 
 
 toFloatToken :: ParsecT [Token] st IO Token

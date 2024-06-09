@@ -61,6 +61,10 @@ tokens :-
  -- int relations
   ">="                                     { \p s -> Geq $ getLC p }
   "<="                                     { \p s -> Leq $ getLC p }
+  ">"                                     { \p s -> Greater $ getLC p }
+  "<"                                     { \p s -> Less $ getLC p }
+  "=="                                     { \p s -> Eq $ getLC p }
+  "!="                                     { \p s -> Neq $ getLC p }
 
   -- Others
   $white+                                 ;
@@ -128,6 +132,10 @@ data Token
     -- Relations
     | Geq Pos
     | Leq Pos
+    | Greater Pos
+    | Less Pos
+    | Eq Pos
+    | Neq Pos
     -- Names and blocks and such
     | Colon Pos
     | SemiColon Pos

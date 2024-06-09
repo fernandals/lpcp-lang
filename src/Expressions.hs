@@ -229,10 +229,14 @@ evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (no
 numberRelation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
 numberRelation = do 
     n1 <- try binArithExpr <|> unaArithExpr
-    rel <- leqToken <|> geqToken
+    rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
     n2 <- try binArithExpr <|> unaArithExpr
     return (evalRel n1 rel n2)
 
 evalRel :: Token -> Token -> Token  -> Token
 evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
+evalRel (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
+evalRel (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
+evalRel (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
+evalRel (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y))
