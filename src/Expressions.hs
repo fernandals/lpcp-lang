@@ -27,7 +27,7 @@ evalVar token = return token
 unaArithExpr :: ParsecT [Token] State IO(Token) 
 unaArithExpr = do
    op <- minusToken
-   n1 <- intLToken <|> floatLToken <|> idToken  <|> numberRelation
+   n1 <- intLToken <|> floatLToken <|> idToken  <|> bracketExpr
    σ <- getState
    case n1 of
     IntL p i -> return (IntL p (-i))
@@ -239,7 +239,7 @@ evalRel (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
 evalRel (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
 evalRel (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
 evalRel (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
-evalRel (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y))) --ta bugando
+evalRel (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
 evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
 evalRel (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
