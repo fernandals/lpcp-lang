@@ -67,9 +67,9 @@ bracket = do
 
 relation ::  ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
 relation = do 
-    n1 <- subExpression
+    n1 <- try bracket <|> subExpression 
     rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
-    n2 <- subExpression
+    n2 <- try bracket <|> subExpression
     return (eval n1 rel n2)
 
 subExpression :: ParsecT [Token] State IO(Token)
