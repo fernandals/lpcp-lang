@@ -34,10 +34,36 @@ colonToken = tokenPrim show updatePos get_token
     get_token (Colon pos) = Just $ Colon pos
     get_token _ = Nothing
 
+-- Tokens para tipos
+
 intToken :: ParsecT [Token] st IO Token
 intToken = tokenPrim show updatePos get_token
   where
     get_token (Int pos) = Just $ Int pos
+    get_token _ = Nothing
+  
+floatToken :: ParsecT [Token] st IO Token
+floatToken = tokenPrim show updatePos get_token
+  where
+    get_token (Float pos) = Just $ Float pos
+    get_token _ = Nothing
+
+boolToken :: ParsecT [Token] st IO Token
+boolToken = tokenPrim show updatePos get_token
+  where
+    get_token (Bool pos) = Just $ Bool pos
+    get_token _ = Nothing
+
+charToken :: ParsecT [Token] st IO Token
+charToken = tokenPrim show updatePos get_token
+  where
+    get_token (Char pos) = Just $ Char pos
+    get_token _ = Nothing
+
+stringToken :: ParsecT [Token] st IO Token
+stringToken = tokenPrim show updatePos get_token
+  where
+    get_token (String pos) = Just $ String pos
     get_token _ = Nothing
 
 intLToken :: ParsecT [Token] st IO Token
@@ -45,6 +71,32 @@ intLToken = tokenPrim show updatePos get_token
   where
     get_token (IntL pos n) = Just $ IntL pos n
     get_token _ = Nothing
+
+floatLToken :: ParsecT [Token] st IO Token
+floatLToken = tokenPrim show updatePos get_token
+  where
+    get_token (FloatL pos n) = Just $ FloatL pos n
+    get_token _ = Nothing
+
+boolLToken :: ParsecT [Token] st IO Token
+boolLToken = tokenPrim show updatePos get_token
+  where
+    get_token (BoolL pos n) = Just $ BoolL pos n
+    get_token _ = Nothing
+
+charLToken :: ParsecT [Token] st IO Token
+charLToken = tokenPrim show updatePos get_token
+  where
+    get_token (CharL pos n) = Just $ CharL pos n
+    get_token _ = Nothing
+
+stringLToken :: ParsecT [Token] st IO Token
+stringLToken = tokenPrim show updatePos get_token
+  where
+    get_token (StringL pos n) = Just $ StringL pos n
+    get_token _ = Nothing
+
+-- Outros tokens
 
 letToken :: ParsecT [Token] st IO Token
 letToken = tokenPrim show updatePos get_token
@@ -74,6 +126,140 @@ elifToken :: ParsecT [Token] st IO Token
 elifToken = tokenPrim show updatePos get_token
   where
     get_token (Elif pos) = Just $ Elif pos
+    get_token _ = Nothing
+
+-- Tokens para exp arimimeticas
+
+plusToken :: ParsecT [Token] st IO Token
+plusToken = tokenPrim show updatePos get_token
+  where
+    get_token (Plus pos) = Just $ Plus pos
+    get_token _ = Nothing
+
+minusToken :: ParsecT [Token] st IO Token
+minusToken = tokenPrim show updatePos get_token
+  where
+    get_token (Minus pos) = Just $ Minus pos
+    get_token _ = Nothing
+
+timesToken :: ParsecT [Token] st IO Token
+timesToken = tokenPrim show updatePos get_token
+  where
+    get_token (Times pos) = Just $ Times pos
+    get_token _ = Nothing
+
+dividesToken :: ParsecT [Token] st IO Token
+dividesToken = tokenPrim show updatePos get_token
+  where
+    get_token (Divides pos) = Just $ Divides pos
+    get_token _ = Nothing
+
+powToken :: ParsecT [Token] st IO Token
+powToken = tokenPrim show updatePos get_token
+  where
+    get_token (Pow pos) = Just $ Pow pos
+    get_token _ = Nothing
+
+modulosToken :: ParsecT [Token] st IO Token
+modulosToken = tokenPrim show updatePos get_token
+  where
+    get_token (Modulos pos) = Just $ Modulos pos
+    get_token _ = Nothing
+
+beginpToken :: ParsecT [Token] st IO Token
+beginpToken = tokenPrim show updatePos get_token
+  where
+    get_token (BeginP pos) = Just $ BeginP pos
+    get_token _ = Nothing
+
+endpToken :: ParsecT [Token] st IO Token
+endpToken = tokenPrim show updatePos get_token
+  where
+    get_token (EndP pos) = Just $ EndP pos
+    get_token _ = Nothing
+
+-- Tokens Bool exp
+
+andToken :: ParsecT [Token] st IO Token
+andToken = tokenPrim show updatePos get_token
+  where
+    get_token (And pos) = Just $ And pos
+    get_token _ = Nothing
+
+orToken :: ParsecT [Token] st IO Token
+orToken = tokenPrim show updatePos get_token
+  where
+    get_token (Or pos) = Just $ Or pos
+    get_token _ = Nothing
+
+notToken :: ParsecT [Token] st IO Token
+notToken = tokenPrim show updatePos get_token
+  where
+    get_token (Not pos) = Just $ Not pos
+    get_token _ = Nothing
+
+xorToken :: ParsecT [Token] st IO Token
+xorToken = tokenPrim show updatePos get_token
+  where
+    get_token (Xor pos) = Just $ Xor pos
+    get_token _ = Nothing
+
+-- Relations
+
+geqToken :: ParsecT [Token] st IO Token
+geqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Geq pos) = Just $ Geq pos
+    get_token _ = Nothing
+
+leqToken :: ParsecT [Token] st IO Token
+leqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Leq pos) = Just $ Leq pos
+    get_token _ = Nothing
+
+greaterToken :: ParsecT [Token] st IO Token
+greaterToken = tokenPrim show updatePos get_token
+  where
+    get_token (Greater pos) = Just $ Greater pos
+    get_token _ = Nothing
+
+lessToken :: ParsecT [Token] st IO Token
+lessToken = tokenPrim show updatePos get_token
+  where
+    get_token (Less pos) = Just $ Less pos
+    get_token _ = Nothing
+
+eqToken :: ParsecT [Token] st IO Token
+eqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Eq pos) = Just $ Eq pos
+    get_token _ = Nothing
+
+neqToken :: ParsecT [Token] st IO Token
+neqToken = tokenPrim show updatePos get_token
+  where
+    get_token (Neq pos) = Just $ Neq pos
+    get_token _ = Nothing
+
+-- Tokens funcoes 
+
+toFloatToken :: ParsecT [Token] st IO Token
+toFloatToken = tokenPrim show updatePos get_token
+  where
+    get_token (ToFloat pos) = Just $ ToFloat pos
+    get_token _ = Nothing
+
+toStrToken :: ParsecT [Token] st IO Token
+toStrToken = tokenPrim show updatePos get_token
+  where
+    get_token (ToStr pos) = Just $ ToStr pos
+    get_token _ = Nothing
+
+absToken :: ParsecT [Token] st IO Token
+absToken = tokenPrim show updatePos get_token
+  where
+    get_token (Abs pos) = Just $ Abs pos
     get_token _ = Nothing
 
 updatePos :: SourcePos -> Token -> [Token] -> SourcePos

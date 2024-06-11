@@ -87,6 +87,8 @@
     	| <literal_value>
     	| ID
 
+-------------------------------- ESSA PARTE DE BAIXO TA FEITA: EXPRESSIONS -------------------------
+
 <arith_expr> ::= <arith_expr> '+' <term>
      | <arith_expr> '-' <term>
      | <term>
@@ -111,3 +113,29 @@
 <relation> ::= <arith_expr> <relop> <arith_expr>
 <relop> ::= LEQ | GEQ | LESS | GREATER | EQ | NEQ
 
+-------------------------
+<expression> ::= <expression> OR <term>
+    | <expression> XOR <term>
+    | <term>
+<term> ::= <term> AND <not_factor> 
+    | <not_factor>
+<not_factor> ::= NOT <factor>
+    | <factor>
+<factor> ::= '(' <expression> ')'
+    | <relation>
+    | <sub_expression>
+<relation> ::= <expression> <relop> <expression>
+<sub_expression> ::= <sub_expression> '+' <sub_term>
+    | <sub_expression> '-'<sub_term>
+    | <sub_term>
+<sub_term> ::= <sub_term> '*' <sub_factor>
+    | <sub_term> '/' <neg_sub_factor>
+    | <neg_sub_factor>
+<neg_sub_factor> ::= - <sub_factor> 
+	| <sub_factor>
+<sub_factor> ::= <base> POW <sub_factor>
+    | <base>
+<base> ::= '(' <sub_expression> ')'
+    | <expr_atom>
+
+<relop> ::= LEQ | GEQ | LESS | GREATER | EQ | NEQ

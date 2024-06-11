@@ -8,15 +8,16 @@ import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
+import Expressions
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
   name <- idToken
   colon <- colonToken
-  decltype <- intToken
+  decltype <- types
   assign <- assignToken
-  expr <- intLToken
+  expr <- expression
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState
@@ -35,13 +36,19 @@ assign :: ParsecT [Token] State IO [Token]
 assign = do
   name <- idToken
   assign <- assignToken
-  expr <- intLToken
+  expr <- expression
 
   updateState $ stateUpdate (name, expr)
   σ <- getState
   liftIO $ print σ
 
   return [name, assign, expr]
+
+types :: ParsecT [Token] State IO (Token)
+types = do
+  t <- intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+  return t
+
 
 -- TODO
 -- funDecl :: ParsecT [Token] State IO [Token]
