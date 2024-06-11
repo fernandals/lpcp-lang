@@ -49,12 +49,12 @@ unaBoolExpr= do
     σ <- getState
     case b of
         BoolL p i -> return (BoolL p (not i))
-        Id p i -> return (negBoolValue (getValue (Id p i) σ))
+        Id p i -> return (negValue (getValue (Id p i) σ))
         _ -> fail "Expected an number token"
 
 factor ::  ParsecT [Token] State IO(Token)
 factor = do
-    n1 <- try bracket <|> try relation <|> subExpression
+    n1 <- try relation <|> try bracket <|> subExpression
     return (n1)
 
 
@@ -121,11 +121,6 @@ unaArithExpr = do
     FloatL p i ->  return (FloatL p (-i))
     Id p i -> return (negValue (getValue (Id p i) σ))
     _ -> fail "Expected an number token"
-
-negValue :: Token -> Token
-negValue (IntL p n) = (IntL p (-n))
-negValue (FloatL p n) = (FloatL p (-n))
-negValue _ = error "is not a value"
 
 subFactor :: ParsecT [Token] State IO(Token)
 subFactor = do
@@ -194,7 +189,8 @@ convAbs = do
   r <- endpToken
   return (IntL (pos n) (abs (valueInt n)))
 
---Aux 
+--AUX 
+
 valueInt :: Token -> Integer
 valueInt (IntL p n) = n
 valueInt _ = error "Not an integer token"
@@ -206,9 +202,11 @@ valueFloat _ = error "Not an float token"
 pos :: Token -> (Int,Int)
 pos (IntL p n) = p 
 
-negBoolValue :: Token -> Token
-negBoolValue (BoolL p b) = (BoolL p (not b))
-negBoolValue _ = error "is not a value"
+negValue :: Token -> Token
+negValue (BoolL p b) = (BoolL p (not b))
+negValue (IntL p n) = (IntL p (-n))
+negValue (FloatL p n) = (FloatL p (-n))
+negValue _ = error "is not a value"
 
 eval :: Token -> Token -> Token -> Token
 eval (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
@@ -228,21 +226,18 @@ eval (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)
 -- REL
 eval (BoolL p x) (Eq r) (BoolL q y) = (BoolL p (x == y))
 eval (BoolL p x) (Neq r) (BoolL q y) = (BoolL p (not (x == y)))
--- FLOAT
 eval (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
 eval (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
 eval (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
 eval (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
 eval (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
 eval (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
--- INT
 eval (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 eval (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
 eval (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
 eval (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
 eval (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
 eval (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y)) 
--- CHAR
 eval (CharL p x) (Leq r) (CharL q y) = (BoolL p (x <= y))
 eval (CharL p x) (Geq r) (CharL q y) = (BoolL p (x >= y))
 eval (CharL p x) (Less r) (CharL q y) = (BoolL p (x < y))
