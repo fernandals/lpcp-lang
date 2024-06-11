@@ -17,7 +17,7 @@ varDecl = do
   colon <- colonToken
   decltype <- intToken <|> floatToken <|> boolToken <|> charToken
   assign <- assignToken
-  expr <- express
+  expr <- expression
 
   updateState $ stateInsert (modifier, decltype, name, expr)
   σ <- getState
@@ -36,7 +36,7 @@ assign :: ParsecT [Token] State IO [Token]
 assign = do
   name <- idToken
   assign <- assignToken
-  expr <- try binArithExpr
+  expr <- expression
 
   updateState $ stateUpdate (name, expr)
   σ <- getState

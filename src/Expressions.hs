@@ -9,22 +9,101 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 
+expression :: ParsecT [Token] State IO(Token) -- precisa melhoria nessa ordem, pq essa foi escolhida na tentativa e erro
+expression = do
+    n1 <-  term
+    result <- evalExpressionRemaining n1
+    return (result)
 
-express :: ParsecT [Token] State IO(Token)
-express = do
-    n <- try binArithExpr  <|>  try binBoolExpr  <|> try unaBoolExpr <|> try unaArithExpr  <|> charLToken
-    return (n)
+evalExpressionRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalExpressionRemaining n1 = (do
+        op <- orToken <|> xorToken
+        n2 <- term
+        result <- evalExpressionRemaining (eval n1 op n2)
+        return (result))
+    <|> return (n1)
 
--- ARITH
+term :: ParsecT [Token] State IO(Token)
+term= do
+    n1 <- notFactor
+    result <- evalTermRemaining n1
+    return (result)
 
-atomExpr :: ParsecT [Token] State IO(Token)
-atomExpr = do 
-    n <- intLToken 
-        <|> floatLToken 
-        <|> idToken 
-        <|> convToFloat 
-        <|> convAbs
-    evalVar n
+evalTermRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalTermRemaining n1 = (do
+        op <- andToken
+        n2 <- notFactor
+        result <- evalTermRemaining (eval n1 op n2)
+        return (result))
+    <|> return (n1)
+
+notFactor :: ParsecT [Token] State IO(Token) --pode dar ruim
+notFactor = do
+    n1 <- try unaBoolExpr <|> factor
+    return (n1)
+
+unaBoolExpr :: ParsecT [Token] State IO(Token) 
+unaBoolExpr= do
+    op <- notToken
+    b <-  expression
+    σ <- getState
+    case b of
+        BoolL p i -> return (BoolL p (not i))
+        Id p i -> return (negBoolValue (getValue (Id p i) σ))
+        _ -> fail "Expected an number token"
+
+factor ::  ParsecT [Token] State IO(Token)
+factor = do
+    n1 <- try bracket <|> try relation <|> subExpression
+    return (n1)
+
+
+bracket :: ParsecT [Token] State IO(Token)
+bracket = do
+    l <- beginpToken
+    expr <- expression
+    r <- endpToken
+    return (expr)
+
+relation ::  ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
+relation = do 
+    n1 <- subExpression
+    rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
+    n2 <- subExpression
+    return (eval n1 rel n2)
+
+subExpression :: ParsecT [Token] State IO(Token)
+subExpression = do
+   n1 <- subTerm
+   result <- evalSubExpressionRemaining n1
+   return (result)
+
+evalSubExpressionRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalSubExpressionRemaining n1 = (do
+        op <- plusToken <|> minusToken
+        n2 <- subTerm
+        result <- evalSubExpressionRemaining (eval n1 op n2)
+        return (result))
+    <|> return (n1) 
+
+subTerm :: ParsecT [Token] State IO(Token)
+subTerm = do
+    n1 <- negSubFactor
+    result <- evalSubTermRemaining n1
+    return (result)
+
+evalSubTermRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalSubTermRemaining n1 = (do
+        op <- timesToken <|> dividesToken
+        n2 <- negSubFactor
+        result <- evalSubTermRemaining  (eval n1 op n2)
+        return (result))
+    <|> return (n1) 
+
+negSubFactor ::  ParsecT [Token] State IO(Token) --pode dar ruim
+negSubFactor  = do
+    n1 <- try unaArithExpr <|> subFactor
+    return (n1)
 
 evalVar :: Token -> ParsecT [Token] State IO Token
 evalVar (Id p id) = do
@@ -35,7 +114,7 @@ evalVar token = return token
 unaArithExpr :: ParsecT [Token] State IO(Token) 
 unaArithExpr = do
    op <- minusToken
-   n1 <- intLToken <|> floatLToken <|> idToken  <|> bracketExpr
+   n1 <- subExpression
    σ <- getState
    case n1 of
     IntL p i -> return (IntL p (-i))
@@ -48,85 +127,51 @@ negValue (IntL p n) = (IntL p (-n))
 negValue (FloatL p n) = (FloatL p (-n))
 negValue _ = error "is not a value"
 
-binArithExpr :: ParsecT [Token] State IO(Token)
-binArithExpr = do
-   n1 <- termArithExpr
-   result <- evalBinRemaining n1
-   return (result)
-
-evalBinRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalBinRemaining n1 = (do
-        op <- plusToken <|> minusToken
-        n2 <- termArithExpr
-        result <- evalBinRemaining (evalArith n1 op n2)
-        return (result))
-    <|> return (n1) 
-
-termArithExpr :: ParsecT [Token] State IO(Token)
-termArithExpr = do
-    n1 <- powArithExpr
-    result <- evalTermRemaining n1
+subFactor :: ParsecT [Token] State IO(Token)
+subFactor = do
+    n1 <- base
+    result <- evalSubFactorRemaining n1
     return (result)
 
-evalTermRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalTermRemaining n1 = (do
-        op <- timesToken <|> dividesToken
-        n2 <- powArithExpr
-        result <- evalTermRemaining (evalArith n1 op n2)
-        return (result))
-    <|> return (n1) 
-
-powArithExpr :: ParsecT [Token] State IO(Token)
-powArithExpr = do
-    n1 <- try bracketExpr <|> atomExpr
-    result <- evalPowRemaining n1
-    return (result)
-
-evalPowRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalPowRemaining n1 = (do
+evalSubFactorRemaining :: Token -> ParsecT [Token] State IO(Token)
+evalSubFactorRemaining n1 = (do
         op <- powToken
-        n2 <- try bracketExpr <|>  atomExpr
-        result <- evalPowRemaining (evalArith n1 op n2)
+        n2 <- base
+        result <- evalSubFactorRemaining (eval n1 op n2)
         return (result))
     <|> return (n1) 
 
-bracketExpr :: ParsecT [Token] State IO(Token)
-bracketExpr = do
+base :: ParsecT [Token] State IO(Token)
+base = do
+    n1 <- subBracket <|> atomExpression
+    return (n1)
+
+subBracket :: ParsecT [Token] State IO(Token)
+subBracket = do
     l <- beginpToken
-    expr <- binArithExpr <|> unaArithExpr
+    expr <- subExpression
     r <- endpToken
     return (expr)
 
-evalRemaining :: Token -> ParsecT [Token] State IO(Token) --nem lembro pra que tinha feito essa, analisar se eh removivel agora
-evalRemaining n1 = (do
-        op <- powToken
-        n2 <- atomExpr
-        result <- evalRemaining(evalArith n1 op n2)
-        return (result))
-    <|> return (n1) 
+atomExpression ::  ParsecT [Token] State IO(Token)
+atomExpression = do 
+    n <- intLToken 
+        <|> floatLToken 
+        <|> charLToken
+        <|> boolLToken
+        <|> idToken
+        <|> convToFloat 
+        <|> convAbs
+    evalVar n
 
--- Ajeitar isso depois pra nao ficar duplicando onde nao precisar ( + , - , * )
 
-evalArith :: Token -> Token -> Token -> Token
-evalArith (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
-evalArith (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
-evalArith (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
-evalArith (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
-evalArith (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
-evalArith (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
-evalArith (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
-evalArith (FloatL p x) (Times _) (FloatL r y) =  FloatL p (x * y)
-evalArith (FloatL p x) (Divides _) (FloatL r y) =  FloatL p (x / y)
-evalArith (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else  FloatL p (1 / (x ^ (-y)))
-evalArith _ _ _ = error "Type mismatch"
-
--- Int functions
+-- Functions
 
 convToFloat :: ParsecT [Token] State IO(Token)
 convToFloat = do 
   fun <- toFloatToken
   l <- beginpToken
-  n <- binArithExpr <|> unaArithExpr
+  n <- expression
   r <- endpToken
   nEvaluated <- evalVar n
   case nEvaluated of
@@ -137,7 +182,7 @@ convToStr :: ParsecT [Token] State IO(Token)
 convToStr = do 
   fun <- toStrToken
   l <- beginpToken
-  n <- binArithExpr <|> unaArithExpr
+  n <- expression
   r <- endpToken
   return (StringL (pos n) (show (valueInt n)))
 
@@ -145,11 +190,11 @@ convAbs :: ParsecT [Token] State IO(Token)
 convAbs = do 
   fun <- absToken
   l <- beginpToken
-  n <- binArithExpr <|> unaArithExpr
+  n <- expression
   r <- endpToken
   return (IntL (pos n) (abs (valueInt n)))
 
-
+--Aux 
 valueInt :: Token -> Integer
 valueInt (IntL p n) = n
 valueInt _ = error "Not an integer token"
@@ -161,108 +206,47 @@ valueFloat _ = error "Not an float token"
 pos :: Token -> (Int,Int)
 pos (IntL p n) = p 
 
-
--- BOOL
-
-
-atomBoolExpr :: ParsecT [Token] State IO(Token)
-atomBoolExpr = do 
-    b <- boolLToken <|> idToken
-    evalVar b
-
-unaBoolExpr :: ParsecT [Token] State IO(Token) 
-unaBoolExpr= do
-   op <- notToken
-   b <- boolLToken <|> idToken <|> relation <|> bracketBoolExpr --resolver para id
-   σ <- getState
-   case b of
-    BoolL p i -> return (BoolL p (not i))
-    Id p i -> return (negBoolValue (getValue (Id p i) σ))
-    _ -> fail "Expected an number token"
-
 negBoolValue :: Token -> Token
 negBoolValue (BoolL p b) = (BoolL p (not b))
 negBoolValue _ = error "is not a value"
 
-binBoolExpr :: ParsecT [Token] State IO(Token)
-binBoolExpr = do
-   b <-  termBoolExpr
-   result <- evalBoolRemaining b
-   return (result)
-
-evalBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalBoolRemaining b = (do
-        op <- orToken <|> xorToken
-        d <- termBoolExpr
-        result <- evalBoolRemaining (evalBool b op d)
-        return (result))
-    <|> return (b) 
-
-termBoolExpr :: ParsecT [Token] State IO(Token)
-termBoolExpr = do
-    b <- factorBoolExpr
-    result <- evalTermBoolRemaining b
-    return (result)
-
-evalTermBoolRemaining :: Token -> ParsecT [Token] State IO(Token)
-evalTermBoolRemaining b = (do
-        op <- andToken
-        d <- factorBoolExpr
-        result <- evalTermBoolRemaining (evalBool b op d)
-        return (result))
-    <|> return (b)
-
-factorBoolExpr :: ParsecT [Token] State IO(Token)
-factorBoolExpr = do
-    n1 <- bracketBoolExpr <|> unaBoolExpr <|> atomBoolExpr <|> relation
-    return (n1)
-
-
-bracketBoolExpr :: ParsecT [Token] State IO(Token)
-bracketBoolExpr = do
-    l <- beginpToken
-    expr <- binBoolExpr <|> unaBoolExpr
-    r <- endpToken
-    return (expr)
-
-    
-evalBool :: Token -> Token -> Token -> Token
-evalBool (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
-evalBool (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
-evalBool (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
-
-
--- NUMBER : RELATIONS 
-
-relation :: ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
-relation = do 
-    n1 <- try binArithExpr <|> try unaArithExpr <|> charLToken
-    rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
-    n2 <- try binArithExpr <|> try unaArithExpr <|> charLToken
-    return (evalRel n1 rel n2)
-
-evalRel :: Token -> Token -> Token  -> Token
-evalRel (BoolL p x) (Eq r) (BoolL q y) = (BoolL p (x == y))
-evalRel (BoolL p x) (Neq r) (BoolL q y) = (BoolL p (not (x == y)))
+eval :: Token -> Token -> Token -> Token
+eval (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
+eval (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
+eval (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
+eval (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
+eval (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
+eval (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
+eval (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
+eval (FloatL p x) (Times _) (FloatL r y) =  FloatL p (x * y)
+eval (FloatL p x) (Divides _) (FloatL r y) =  FloatL p (x / y)
+eval (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else  FloatL p (1 / (x ^ (-y)))
+--BOOL
+eval (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
+eval (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
+eval (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
+-- REL
+eval (BoolL p x) (Eq r) (BoolL q y) = (BoolL p (x == y))
+eval (BoolL p x) (Neq r) (BoolL q y) = (BoolL p (not (x == y)))
 -- FLOAT
-evalRel (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
-evalRel (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
-evalRel (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
-evalRel (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
-evalRel (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
-evalRel (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
+eval (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
+eval (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
+eval (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
+eval (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
+eval (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
+eval (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
 -- INT
-evalRel (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
-evalRel (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
-evalRel (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
-evalRel (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
-evalRel (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
-evalRel (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y)) 
+eval (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
+eval (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
+eval (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
+eval (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
+eval (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
+eval (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y)) 
 -- CHAR
-evalRel (CharL p x) (Leq r) (CharL q y) = (BoolL p (x <= y))
-evalRel (CharL p x) (Geq r) (CharL q y) = (BoolL p (x >= y))
-evalRel (CharL p x) (Less r) (CharL q y) = (BoolL p (x < y))
-evalRel (CharL p x) (Greater r) (CharL q y) = (BoolL p (x > y))
-evalRel (CharL p x) (Eq r) (CharL q y) = (BoolL p (x == y))
-evalRel (CharL p x) (Neq r) (CharL q y) = (BoolL p (not(x == y))) 
-evalRel _ _ _ = error "Type mismatch"
+eval (CharL p x) (Leq r) (CharL q y) = (BoolL p (x <= y))
+eval (CharL p x) (Geq r) (CharL q y) = (BoolL p (x >= y))
+eval (CharL p x) (Less r) (CharL q y) = (BoolL p (x < y))
+eval (CharL p x) (Greater r) (CharL q y) = (BoolL p (x > y))
+eval (CharL p x) (Eq r) (CharL q y) = (BoolL p (x == y))
+eval (CharL p x) (Neq r) (CharL q y) = (BoolL p (not(x == y))) 
+eval _ _ _ = error "Type mismatch"
