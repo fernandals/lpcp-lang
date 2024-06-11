@@ -1,9 +1,9 @@
 module program
 
-mut b : bool = not (3.0 + 5.0 != 3.0) 
+mut b : bool = not (3.0 + 5.0 < -3.0) 
 mut c : char = 'a'
 mut d : bool = 'a' < 'b'
 mut e : bool = false == true 
 mut f : bool = d == false
-mut g : bool = not ('a' < 'b') == true and true
-
+mut g : bool = not (('a' < 'b') and false)
+mut n : int = 5 + 10 % 3

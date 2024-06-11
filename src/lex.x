@@ -43,6 +43,7 @@ tokens :-
   \*                                      { \p s -> Times $ getLC p }
   \/                                      { \p s -> Divides $ getLC p }
   \^                                      { \p s -> Pow $ getLC p }
+  \%                                      { \p s -> Modulos $ getLC p }
   "("                                     { \p s -> BeginP $ getLC p }
   ")"                                     { \p s -> EndP $ getLC p }
 
@@ -121,6 +122,7 @@ data Token
     | Minus Pos
     | Times Pos
     | Divides Pos
+    | Modulos Pos
     | Pow Pos
     | Mod Pos
     | And Pos

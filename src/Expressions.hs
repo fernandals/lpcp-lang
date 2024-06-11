@@ -47,14 +47,6 @@ factor = do
     n1 <- try relation <|> try bracket <|> subExpression
     return (n1)
 
-
-bracket :: ParsecT [Token] State IO(Token)
-bracket = do
-    l <- beginpToken
-    expr <- expression
-    r <- endpToken
-    return (expr)
-
 relation ::  ParsecT [Token] State IO(Token)
 relation = do 
     n1 <- try bracket <|> subExpression 
@@ -84,7 +76,7 @@ subTerm = do
 
 evalSubTermRemaining :: Token -> ParsecT [Token] State IO(Token)
 evalSubTermRemaining n1 = (do
-        op <- timesToken <|> dividesToken
+        op <- timesToken <|> dividesToken <|> modulosToken
         n2 <- negSubFactor
         result <- evalSubTermRemaining  (eval n1 op n2)
         return (result))
@@ -114,13 +106,6 @@ base = do
     n1 <- subBracket <|> atomExpression
     return (n1)
 
-subBracket :: ParsecT [Token] State IO(Token)
-subBracket = do
-    l <- beginpToken
-    expr <- subExpression
-    r <- endpToken
-    return (expr)
-
 atomExpression ::  ParsecT [Token] State IO(Token)
 atomExpression = do 
     n <- intLToken 
@@ -131,7 +116,6 @@ atomExpression = do
         <|> convToFloat 
         <|> convAbs
     evalVar n
-
 
 -- Functions
 
@@ -176,7 +160,7 @@ pos :: Token -> (Int,Int)
 pos (IntL p n) = p 
 
 
--- GAMBIARRA UNARIAS 
+-- GAMBIARRA UNARIAS & BRACKETs
 
 unaBoolExpr :: ParsecT [Token] State IO(Token) 
 unaBoolExpr= do
@@ -211,6 +195,21 @@ negValue (IntL p n) = (IntL p (-n))
 negValue (FloatL p n) = (FloatL p (-n))
 negValue _ = error "is not a value"
 
+
+bracket :: ParsecT [Token] State IO(Token)
+bracket = do
+    l <- beginpToken
+    expr <- expression
+    r <- endpToken
+    return (expr)
+
+subBracket :: ParsecT [Token] State IO(Token)
+subBracket = do
+    l <- beginpToken
+    expr <- subExpression
+    r <- endpToken
+    return (expr)
+
 -- EVAL 
 
 eval :: Token -> Token -> Token -> Token
@@ -219,6 +218,7 @@ eval (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
 eval (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
 eval (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
 eval (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
+eval (IntL p x) (Modulos _) (IntL r y) = IntL p (mod x y)
 eval (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
 eval (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
 eval (FloatL p x) (Times _) (FloatL r y) =  FloatL p (x * y)

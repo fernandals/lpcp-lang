@@ -147,6 +147,12 @@ powToken = tokenPrim show updatePos get_token
     get_token (Pow pos) = Just $ Pow pos
     get_token _ = Nothing
 
+modulosToken :: ParsecT [Token] st IO Token
+modulosToken = tokenPrim show updatePos get_token
+  where
+    get_token (Modulos pos) = Just $ Modulos pos
+    get_token _ = Nothing
+
 beginpToken :: ParsecT [Token] st IO Token
 beginpToken = tokenPrim show updatePos get_token
   where
