@@ -42,16 +42,6 @@ notFactor = do
     n1 <- try unaBoolExpr <|> factor
     return (n1)
 
-unaBoolExpr :: ParsecT [Token] State IO(Token) 
-unaBoolExpr= do
-    op <- notToken
-    b <-  expression
-    σ <- getState
-    case b of
-        BoolL p i -> return (BoolL p (not i))
-        Id p i -> return (negValue (getValue (Id p i) σ))
-        _ -> fail "Expected an number token"
-
 factor ::  ParsecT [Token] State IO(Token)
 factor = do
     n1 <- try relation <|> try bracket <|> subExpression
@@ -65,7 +55,7 @@ bracket = do
     r <- endpToken
     return (expr)
 
-relation ::  ParsecT [Token] State IO(Token) -- problema: nao to conseguindo fazer sem parenteses em volta
+relation ::  ParsecT [Token] State IO(Token)
 relation = do 
     n1 <- try bracket <|> subExpression 
     rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
@@ -104,23 +94,6 @@ negSubFactor ::  ParsecT [Token] State IO(Token) --pode dar ruim
 negSubFactor  = do
     n1 <- try unaArithExpr <|> subFactor
     return (n1)
-
-evalVar :: Token -> ParsecT [Token] State IO Token
-evalVar (Id p id) = do
-    σ <- getState
-    return $ getValue (Id p id) σ
-evalVar token = return token
-
-unaArithExpr :: ParsecT [Token] State IO(Token) 
-unaArithExpr = do
-   op <- minusToken
-   n1 <- subExpression
-   σ <- getState
-   case n1 of
-    IntL p i -> return (IntL p (-i))
-    FloatL p i ->  return (FloatL p (-i))
-    Id p i -> return (negValue (getValue (Id p i) σ))
-    _ -> fail "Expected an number token"
 
 subFactor :: ParsecT [Token] State IO(Token)
 subFactor = do
@@ -202,11 +175,43 @@ valueFloat _ = error "Not an float token"
 pos :: Token -> (Int,Int)
 pos (IntL p n) = p 
 
+
+-- GAMBIARRA UNARIAS 
+
+unaBoolExpr :: ParsecT [Token] State IO(Token) 
+unaBoolExpr= do
+    op <- notToken
+    b <-  expression
+    σ <- getState
+    case b of
+        BoolL p i -> return (BoolL p (not i))
+        Id p i -> return (negValue (getValue (Id p i) σ))
+        _ -> fail "Expected an number token"
+
+unaArithExpr :: ParsecT [Token] State IO(Token) 
+unaArithExpr = do
+   op <- minusToken
+   n1 <- subExpression
+   σ <- getState
+   case n1 of
+    IntL p i -> return (IntL p (-i))
+    FloatL p i ->  return (FloatL p (-i))
+    Id p i -> return (negValue (getValue (Id p i) σ))
+    _ -> fail "Expected an number token"
+
+evalVar :: Token -> ParsecT [Token] State IO Token
+evalVar (Id p id) = do
+    σ <- getState
+    return $ getValue (Id p id) σ
+evalVar token = return token
+
 negValue :: Token -> Token
 negValue (BoolL p b) = (BoolL p (not b))
 negValue (IntL p n) = (IntL p (-n))
 negValue (FloatL p n) = (FloatL p (-n))
 negValue _ = error "is not a value"
+
+-- EVAL 
 
 eval :: Token -> Token -> Token -> Token
 eval (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
