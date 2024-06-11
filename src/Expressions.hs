@@ -116,6 +116,7 @@ atomExpression = do
         <|> idToken
         <|> convToFloat 
         <|> convAbs
+        <|> ifExpression
     evalVar n
 
 -- Functions
@@ -147,7 +148,23 @@ convAbs = do
   r <- endpToken
   return (IntL (pos n) (abs (valueInt n)))
 
+-- IF_EXPRESSION
+
+ifExpression :: ParsecT [Token] State IO(Token) --pensar como fazer os elifs
+ifExpression = do
+    t1 <- ifToken
+    condition <- expression
+    t2 <- thenToken
+    expr1 <- expression
+    t3 <- elseToken
+    expr2 <- expression
+    return (if (valueBool condition) then expr1 else expr2)
+
 --AUX 
+
+valueBool :: Token -> Bool
+valueBool (BoolL p n) = n
+valueBool _ = error "Not a bool token"
 
 valueInt :: Token -> Integer
 valueInt (IntL p n) = n

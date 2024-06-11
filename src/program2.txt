@@ -8,4 +8,5 @@ mut f : bool = d == false
 mut g : bool = not (('a' < 'b') and false)
 mut n : int = 5 + -10 % 3
 mut minhaStr : string = "oi"
-mut testando : bool = "a" < "b"
+
+mut testando : int = if 3<2 then 1 else 3
