@@ -111,6 +111,7 @@ atomExpression = do
     n <- intLToken 
         <|> floatLToken 
         <|> charLToken
+        <|> stringLToken
         <|> boolLToken
         <|> idToken
         <|> convToFloat 
@@ -213,40 +214,56 @@ subBracket = do
 -- EVAL 
 
 eval :: Token -> Token -> Token -> Token
+
+-- ARITH
 eval (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
 eval (IntL p x) (Minus _) (IntL r y) =  IntL p (x - y)
 eval (IntL p x) (Times _) (IntL r y) =  IntL p (x * y)
 eval (IntL p x) (Divides _) (IntL r y) =  IntL p (x `div` y)
 eval (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
 eval (IntL p x) (Modulos _) (IntL r y) = IntL p (mod x y)
+
 eval (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
 eval (FloatL p x) (Minus _) (FloatL r y) =  FloatL p (x - y)
 eval (FloatL p x) (Times _) (FloatL r y) =  FloatL p (x * y)
 eval (FloatL p x) (Divides _) (FloatL r y) =  FloatL p (x / y)
 eval (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else  FloatL p (1 / (x ^ (-y)))
+
 --BOOL
 eval (BoolL p x) (And _) (BoolL r y) = BoolL p (x &&  y)
 eval (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
 eval (BoolL p x) (Xor _) (BoolL r y) = BoolL p (((not x) &&  y) || (x && (not y)) )
--- REL
+
+-- RELATIONS 
 eval (BoolL p x) (Eq r) (BoolL q y) = (BoolL p (x == y))
 eval (BoolL p x) (Neq r) (BoolL q y) = (BoolL p (not (x == y)))
+
 eval (FloatL p x) (Leq r) (FloatL q y) = (BoolL p (x <= y))
 eval (FloatL p x) (Geq r) (FloatL q y) = (BoolL p (x >= y))
 eval (FloatL p x) (Less r) (FloatL q y) = (BoolL p (x < y))
 eval (FloatL p x) (Greater r) (FloatL q y) = (BoolL p (x > y))
 eval (FloatL p x) (Eq r) (FloatL q y) = (BoolL p (x == y))
 eval (FloatL p x) (Neq r) (FloatL q y) = (BoolL p (not(x == y)))
+
 eval (IntL p x) (Leq r) (IntL q y) = (BoolL p (x <= y))
 eval (IntL p x) (Geq r) (IntL q y) = (BoolL p (x >= y))
 eval (IntL p x) (Less r) (IntL q y) = (BoolL p (x < y))
 eval (IntL p x) (Greater r) (IntL q y) = (BoolL p (x > y))
 eval (IntL p x) (Eq r) (IntL q y) = (BoolL p (x == y))
 eval (IntL p x) (Neq r) (IntL q y) = (BoolL p (x /= y)) 
+
 eval (CharL p x) (Leq r) (CharL q y) = (BoolL p (x <= y))
 eval (CharL p x) (Geq r) (CharL q y) = (BoolL p (x >= y))
 eval (CharL p x) (Less r) (CharL q y) = (BoolL p (x < y))
 eval (CharL p x) (Greater r) (CharL q y) = (BoolL p (x > y))
 eval (CharL p x) (Eq r) (CharL q y) = (BoolL p (x == y))
 eval (CharL p x) (Neq r) (CharL q y) = (BoolL p (not(x == y))) 
+
+eval (StringL p x) (Leq r) (StringL q y) = (BoolL p (x <= y))
+eval (StringL p x) (Geq r) (StringL q y) = (BoolL p (x >= y))
+eval (StringL p x) (Less r) (StringL q y) = (BoolL p (x < y))
+eval (StringL p x) (Greater r) (StringL q y) = (BoolL p (x > y))
+eval (StringL p x) (Eq r) (StringL q y) = (BoolL p (x == y))
+eval (StringL p x) (Neq r) (StringL q y) = (BoolL p (not(x == y))) 
+
 eval _ _ _ = error "Type mismatch"

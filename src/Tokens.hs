@@ -60,6 +60,12 @@ charToken = tokenPrim show updatePos get_token
     get_token (Char pos) = Just $ Char pos
     get_token _ = Nothing
 
+stringToken :: ParsecT [Token] st IO Token
+stringToken = tokenPrim show updatePos get_token
+  where
+    get_token (String pos) = Just $ String pos
+    get_token _ = Nothing
+
 intLToken :: ParsecT [Token] st IO Token
 intLToken = tokenPrim show updatePos get_token
   where
@@ -83,6 +89,13 @@ charLToken = tokenPrim show updatePos get_token
   where
     get_token (CharL pos n) = Just $ CharL pos n
     get_token _ = Nothing
+
+stringLToken :: ParsecT [Token] st IO Token
+stringLToken = tokenPrim show updatePos get_token
+  where
+    get_token (StringL pos n) = Just $ StringL pos n
+    get_token _ = Nothing
+
 -- Outros tokens
 
 letToken :: ParsecT [Token] st IO Token

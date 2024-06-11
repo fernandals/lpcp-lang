@@ -15,7 +15,7 @@ varDecl = do
   modifier <- letToken <|> mutToken
   name <- idToken
   colon <- colonToken
-  decltype <- intToken <|> floatToken <|> boolToken <|> charToken
+  decltype <- types
   assign <- assignToken
   expr <- expression
 
@@ -43,6 +43,12 @@ assign = do
   liftIO $ print σ
 
   return [name, assign, expr]
+
+types :: ParsecT [Token] State IO (Token)
+types = do
+  t <- intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+  return t
+
 
 -- TODO
 -- funDecl :: ParsecT [Token] State IO [Token]
