@@ -82,7 +82,7 @@ tokens :-
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
   \'[$alpha $digit]\'                     { \p s -> CharL (getLC p) (s !! 1)}
-  \".*\"                                  { \p s -> StringL (getLC p) s }
+  \".*\"                                  { \p s -> StringL (getLC p) (getStr s)}
 
 {
 
@@ -161,6 +161,11 @@ readbool "false" = False
 
 getLC :: AlexPosn -> Pos
 getLC (AlexPn _ l c) = (l, c)
+
+getStr :: String -> String
+getStr str
+    | length str > 1 = init (tail str)
+    | otherwise = ""
 
 getTokens fn = unsafePerformIO $ getTokensAux fn
 getTokensAux fn = do fh <- openFile fn ReadMode
