@@ -23043,7 +23043,7 @@ alex_action_49 = \p s -> FloatL (getLC p) (read s)
 alex_action_50 = \p s -> BoolL (getLC p) (readbool s)
 alex_action_51 = \p s -> Id (getLC p) s
 alex_action_52 = \p s -> CharL (getLC p) (s !! 1)
-alex_action_53 = \p s -> StringL (getLC p) s
+alex_action_53 = \p s -> StringL (getLC p) (getStr s)
 
 #define ALEX_NOPRED 1
 -- -----------------------------------------------------------------------------
@@ -23361,6 +23361,11 @@ readbool "false" = False
 
 getLC :: AlexPosn -> Pos
 getLC (AlexPn _ l c) = (l, c)
+
+getStr :: String -> String
+getStr str
+    | length str > 1 = init (tail str)
+    | otherwise = ""
 
 getTokens fn = unsafePerformIO $ getTokensAux fn
 getTokensAux fn = do fh <- openFile fn ReadMode
