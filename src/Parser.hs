@@ -4,11 +4,11 @@ module Parser where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
+import Expressions
 import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
-import Expressions
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
@@ -44,11 +44,8 @@ assign = do
 
   return [name, assign, expr]
 
-types :: ParsecT [Token] State IO (Token)
-types = do
-  t <- intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
-  return t
-
+types :: ParsecT [Token] State IO Token
+types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
 -- TODO
 -- funDecl :: ParsecT [Token] State IO [Token]

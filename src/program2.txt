@@ -7,5 +7,5 @@ mut e : bool = false == true
 mut f : bool = d == false
 mut g : bool = not (('a' < 'b') and false)
 mut n : int = 5 + -10 % 3
-mut minhaStr : string = "oi"
-mut testando : bool = "a" < "b"
+--mut minhaStr : string = "oi"
+--mut testando : bool = "a" < "b"
