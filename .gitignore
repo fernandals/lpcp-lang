@@ -2,3 +2,4 @@ tmp/
 *.o
 *.hi
 Main
+src/*.txt

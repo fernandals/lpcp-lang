@@ -20,8 +20,6 @@ varDecl = do
   expr <- expression
 
   updateState $ stateInsert (modifier, decltype, name, expr)
-  σ <- getState
-  liftIO $ print σ
 
   return
     [ modifier,
@@ -39,17 +37,11 @@ assign = do
   expr <- expression
 
   updateState $ stateUpdate (name, expr)
-  σ <- getState
-  liftIO $ print σ
 
   return [name, assign, expr]
 
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
-
--- TODO
--- funDecl :: ParsecT [Token] State IO [Token]
--- funDecl = _
 
 decls :: ParsecT [Token] State IO [Token]
 decls = do
@@ -85,10 +77,10 @@ program :: ParsecT [Token] State IO [Token]
 program = do
   p <- moduleToken
   pn <- idToken
-  d <- decls
-  st <- statements
+  d <- many decls
+  st <- many statements
   eof
-  return $ [p, pn] ++ d ++ st
+  return $ [p, pn] ++ concat d ++ concat st
 
 parser :: [Token] -> IO (Either ParseError [Token])
 parser = runParserT program [] "Error"
