@@ -3,6 +3,7 @@
 module State where
 
 import Lexer
+import Utils
 
 -- modifier, type, id, val
 type StateEntry = (Token, Token, Token, Token)
@@ -21,9 +22,23 @@ stateUpdate :: StateQuery -> State -> State
 stateUpdate _ [] = error "No variable with given name."
 stateUpdate query@(id, val) (sym@(mod', t', id', val') : σ)
   | id == id' = case mod' of
-      Mut _ -> (mod', t', id', val) : σ
+      Mut _ ->
+        if typeof val /= typeof t'
+          then typerror
+          else (mod', t', id', val) : σ
       Let _ -> error "You can't change an immutable value."
   | otherwise = sym : stateUpdate query σ
+  where
+    typerror =
+      error $
+        "Type mismatch at "
+          ++ show (pos id)
+          ++ ".\n"
+          ++ "Expected "
+          ++ typeof t'
+          ++ ", got "
+          ++ typeof val
+          ++ ".\n"
 
 stateDelete :: StateQuery -> State -> State
 stateDelete _ [] = error "No variable with given name."
@@ -33,4 +48,4 @@ stateDelete query@(id, val) (sym@(_, _, id', val') : σ)
 
 getValue :: Token -> State -> Token
 getValue _ [] = error "No variable with given name."
-getValue id (sym@(mod', t', id', val') : σ) = if id == id' then val' else (getValue id σ)
+getValue id (sym@(mod', t', id', val') : σ) = if id == id' then val' else getValue id σ
