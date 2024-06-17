@@ -2,6 +2,7 @@
 
 module Parser where
 
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Expressions
@@ -9,6 +10,7 @@ import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
+import Utils
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
@@ -18,6 +20,26 @@ varDecl = do
   decltype <- types
   assign <- assignToken
   expr <- expression
+
+  let expected_type = typeof decltype
+  let actual_type = typeof expr
+
+  when (actual_type == "error") $
+    error $
+      "Type mismatch in expression evaluation at "
+        ++ show (pos name)
+        ++ ".\n"
+        ++ "Check the types of your operands.\n"
+  when (expected_type /= actual_type) $
+    error $
+      "Type mismatch at "
+        ++ show (pos name)
+        ++ ".\n"
+        ++ "Expected "
+        ++ expected_type
+        ++ ", got "
+        ++ actual_type
+        ++ ".\n"
 
   updateState $ stateInsert (modifier, decltype, name, expr)
 

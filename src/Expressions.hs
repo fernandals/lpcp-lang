@@ -150,9 +150,6 @@ valueFloat :: Token -> Float
 valueFloat (FloatL p n) = n
 valueFloat _ = error "Not a float token"
 
-pos :: Token -> (Int, Int)
-pos (IntL p n) = p
-
 -- GAMBIARRA UNARIAS & BRACKETs
 
 unaBoolExpr :: ParsecT [Token] State IO Token
@@ -247,4 +244,5 @@ eval (StringL p x) (Greater r) (StringL q y) = BoolL p (x > y)
 eval (StringL p x) (Eq r) (StringL q y) = BoolL p (x == y)
 eval (StringL p x) (Neq r) (StringL q y) = BoolL p (x /= y)
 -- IF NOTHING ELSE...
-eval _ _ _ = error "Type mismatch"
+eval (E p) _ _ = E p
+eval operand _ _ = E (pos operand)

@@ -23289,70 +23289,72 @@ alexRightContext IBOX(sc) user__ _ _ input__ =
 type Pos = (Int, Int)
 
 data Token
-    = Module Pos
+    = Module {pos :: Pos}
     -- Commands and flow
-    | Mut Pos
-    | Let Pos
-    | If Pos
-    | Then Pos
-    | Else Pos
-    | Elif Pos
-    | While Pos
-    | For Pos
-    | Do Pos
-    | Loop Pos
-    | Break Pos
-    | Continue Pos
-    | Return Pos
+    | Mut {pos :: Pos}
+    | Let {pos :: Pos}
+    | If {pos :: Pos}
+    | Then {pos :: Pos}
+    | Else {pos :: Pos}
+    | Elif {pos :: Pos}
+    | While {pos :: Pos}
+    | For {pos :: Pos}
+    | Do {pos :: Pos}
+    | Loop {pos :: Pos}
+    | Break {pos :: Pos}
+    | Continue {pos :: Pos}
+    | Return {pos :: Pos}
     -- Types
-    | Type Pos --placeholder
-    | Int Pos
-    | Float Pos
-    | String Pos
-    | Bool Pos
-    | Char Pos
+    | Type {pos :: Pos} --placeholder
+    | Int {pos :: Pos}
+    | Float {pos :: Pos}
+    | String {pos :: Pos}
+    | Bool {pos :: Pos}
+    | Char {pos :: Pos}
     -- Literals
-    | IntL Pos Integer
-    | FloatL Pos Float
-    | StringL Pos String
-    | BoolL Pos Bool
-    | CharL Pos Char
+    | IntL {pos :: Pos, int :: Integer}
+    | FloatL {pos :: Pos, float :: Float}
+    | StringL {pos :: Pos, string :: String}
+    | BoolL {pos :: Pos, bool :: Bool}
+    | CharL {pos :: Pos, char :: Char}
     -- Operators
-    | Plus Pos
-    | Minus Pos
-    | Times Pos
-    | Divides Pos
-    | Modulos Pos
-    | Pow Pos
-    | Mod Pos
-    | And Pos
-    | Or Pos
-    | Xor Pos
-    | Not Pos
+    | Plus {pos :: Pos}
+    | Minus {pos :: Pos}
+    | Times {pos :: Pos}
+    | Divides {pos :: Pos}
+    | Modulos {pos :: Pos}
+    | Pow {pos :: Pos}
+    | Mod {pos :: Pos}
+    | And {pos :: Pos}
+    | Or {pos :: Pos}
+    | Xor {pos :: Pos}
+    | Not {pos :: Pos}
     -- Funcions
-    | ToFloat Pos
-    | ToStr Pos
-    | Abs Pos
+    | ToFloat {pos :: Pos}
+    | ToStr {pos :: Pos}
+    | Abs {pos :: Pos}
     -- Relations
-    | Geq Pos
-    | Leq Pos
-    | Greater Pos
-    | Less Pos
-    | Eq Pos
-    | Neq Pos
+    | Geq {pos :: Pos}
+    | Leq {pos :: Pos}
+    | Greater {pos :: Pos}
+    | Less {pos :: Pos}
+    | Eq {pos :: Pos}
+    | Neq {pos :: Pos}
     -- Names and blocks and such
-    | Colon Pos
-    | SemiColon Pos
-    | Assign Pos
-    | Begin Pos
-    | End Pos
-    | BeginP Pos
-    | EndP Pos
-    | Id Pos String
+    | Colon {pos :: Pos}
+    | SemiColon {pos :: Pos}
+    | Assign {pos :: Pos}
+    | Begin {pos :: Pos}
+    | End {pos :: Pos}
+    | BeginP {pos :: Pos}
+    | EndP {pos :: Pos}
+    | Id {pos :: Pos, name :: String}
+    -- Error handling
+    | E {pos :: Pos}
     deriving ( Show )
 
 instance Eq Token where
-    (Id _ s) == (Id _ s') = s == s'
+    (Id {name = s}) == (Id {name = s'}) = s == s'
 
 -- helpers
 readbool :: String -> Bool
