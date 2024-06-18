@@ -2,6 +2,7 @@
 
 module Parser where
 
+import Builtin
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
@@ -10,6 +11,7 @@ import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
+import Tokens (beginpToken)
 import Utils
 
 varDecl :: ParsecT [Token] State IO [Token]
@@ -62,6 +64,28 @@ assign = do
 
   return [name, assign, expr]
 
+printst :: ParsecT [Token] State IO [Token]
+printst = do
+  id <- printFun
+  beginpToken
+  expr <- expression
+
+  liftIO $ putStr . show $ expr
+
+  endpToken
+  return []
+
+println :: ParsecT [Token] State IO [Token]
+println = do
+  id <- printlnFun
+  beginpToken
+  expr <- expression
+
+  liftIO $ print expr
+
+  endpToken
+  return []
+
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
@@ -82,14 +106,14 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- assign
+  st <- try println <|> printst <|> assign
   sts <- remainingStatements
   return $ st ++ sts
 
 remainingStatements :: ParsecT [Token] State IO [Token]
 remainingStatements =
   ( do
-      st <- assign
+      st <- try println <|> printst <|> assign
       sts <- remainingStatements
       return $ st ++ sts
   )
