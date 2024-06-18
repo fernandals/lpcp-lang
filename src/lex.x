@@ -1,4 +1,6 @@
 {
+{-# LANGUAGE RecordWildCards #-}
+
 module Lexer where
 
 import System.IO
@@ -151,10 +153,17 @@ data Token
     | Id {pos :: Pos, name :: String}
     -- Error handling
     | E {pos :: Pos}
-    deriving ( Show )
 
 instance Eq Token where
     (Id {name = s}) == (Id {name = s'}) = s == s'
+
+instance Show Token where
+    show (IntL {..}) = show int
+    show (FloatL {..}) = show float
+    show (BoolL {..}) = show bool
+    show (CharL {..}) = show char
+    show (StringL {..}) = string
+    show _ = ""
 
 -- helpers
 readbool :: String -> Bool

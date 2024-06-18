@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP #-}
 {-# LINE 1 "lex.x" #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Lexer where
 
 import System.IO
@@ -23285,7 +23287,7 @@ alexRightContext IBOX(sc) user__ _ _ input__ =
         -- match when checking the right context, just
         -- the first match will do.
 #endif
-{-# LINE 87 "lex.x" #-}
+{-# LINE 89 "lex.x" #-}
 type Pos = (Int, Int)
 
 data Token
@@ -23351,10 +23353,17 @@ data Token
     | Id {pos :: Pos, name :: String}
     -- Error handling
     | E {pos :: Pos}
-    deriving ( Show )
 
 instance Eq Token where
     (Id {name = s}) == (Id {name = s'}) = s == s'
+
+instance Show Token where
+    show (IntL {..}) = show int
+    show (FloatL {..}) = show float
+    show (BoolL {..}) = show bool
+    show (CharL {..}) = show char
+    show (StringL {..}) = string
+    show _ = ""
 
 -- helpers
 readbool :: String -> Bool

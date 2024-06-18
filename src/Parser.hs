@@ -11,6 +11,8 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 import Utils
+import Tokens (beginpToken)
+import Builtin
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
@@ -62,6 +64,17 @@ assign = do
 
   return [name, assign, expr]
 
+printst :: ParsecT [Token] State IO [Token]
+printst = do
+  id <- printFun
+  beginpToken
+  expr <- expression
+
+  liftIO $ putStr . show $ expr
+
+  endpToken
+  return []
+
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
@@ -82,14 +95,14 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- assign
+  st <- printst <|> assign
   sts <- remainingStatements
   return $ st ++ sts
 
 remainingStatements :: ParsecT [Token] State IO [Token]
 remainingStatements =
   ( do
-      st <- assign
+      st <- printst <|> assign
       sts <- remainingStatements
       return $ st ++ sts
   )
