@@ -41,7 +41,7 @@ intToken = tokenPrim show updatePos get_token
   where
     get_token (Int pos) = Just $ Int pos
     get_token _ = Nothing
-  
+
 floatToken :: ParsecT [Token] st IO Token
 floatToken = tokenPrim show updatePos get_token
   where
@@ -240,26 +240,6 @@ neqToken :: ParsecT [Token] st IO Token
 neqToken = tokenPrim show updatePos get_token
   where
     get_token (Neq pos) = Just $ Neq pos
-    get_token _ = Nothing
-
--- Tokens funcoes 
-
-toFloatToken :: ParsecT [Token] st IO Token
-toFloatToken = tokenPrim show updatePos get_token
-  where
-    get_token (ToFloat pos) = Just $ ToFloat pos
-    get_token _ = Nothing
-
-toStrToken :: ParsecT [Token] st IO Token
-toStrToken = tokenPrim show updatePos get_token
-  where
-    get_token (ToStr pos) = Just $ ToStr pos
-    get_token _ = Nothing
-
-absToken :: ParsecT [Token] st IO Token
-absToken = tokenPrim show updatePos get_token
-  where
-    get_token (Abs pos) = Just $ Abs pos
     get_token _ = Nothing
 
 updatePos :: SourcePos -> Token -> [Token] -> SourcePos

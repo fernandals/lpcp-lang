@@ -10,8 +10,8 @@ import Expressions
 import Lexer
 import State
 import Text.Parsec hiding (State)
+import Text.Read
 import Tokens
-import Tokens (beginpToken)
 import Utils
 
 varDecl :: ParsecT [Token] State IO [Token]
@@ -21,7 +21,7 @@ varDecl = do
   colon <- colonToken
   decltype <- types
   assign <- assignToken
-  expr <- expression
+  expr <- getst <|> expression
 
   let expected_type = typeof decltype
   let actual_type = typeof expr
@@ -58,33 +58,46 @@ assign :: ParsecT [Token] State IO [Token]
 assign = do
   name <- idToken
   assign <- assignToken
-  expr <- expression
+  expr <- getst <|> expression
 
   updateState $ stateUpdate (name, expr)
 
   return [name, assign, expr]
 
 printst :: ParsecT [Token] State IO [Token]
-printst = do
-  id <- printFun
-  beginpToken
-  expr <- expression
+printst =
+  do
+    comm <- printFun <|> printLnFun
+    beginpToken
 
-  liftIO $ putStr . show $ expr
+    expr <- expression
+    liftIO
+      $ case comm of
+        (Print _) -> putStr . show
+        (PrintLn _) -> print
+      $ expr
 
-  endpToken
-  return []
+    endpToken
+    return [comm, expr]
 
-println :: ParsecT [Token] State IO [Token]
-println = do
-  id <- printlnFun
-  beginpToken
-  expr <- expression
+getst :: ParsecT [Token] State IO Token
+getst =
+  do
+    comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
+    beginpToken >> endpToken
 
-  liftIO $ print expr
+    input <- liftIO getLine
+    pure $ case comm of
+      (GetInt p) -> IntL p $ parseInput input
+      (GetFloat p) -> FloatL p $ parseInput input
+      (GetChar p) -> CharL p $ parseInput input
+      (GetString p) -> StringL p input
 
-  endpToken
-  return []
+parseInput :: (Read a) => String -> a
+parseInput = check . readMaybe
+  where
+    check (Just x) = x
+    check Nothing = error "Couldn't parse input. Maybe the type doesn't match?\n"
 
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
@@ -106,14 +119,14 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- try println <|> printst <|> assign
+  st <- printst <|> assign
   sts <- remainingStatements
   return $ st ++ sts
 
 remainingStatements :: ParsecT [Token] State IO [Token]
 remainingStatements =
   ( do
-      st <- try println <|> printst <|> assign
+      st <- printst <|> assign
       sts <- remainingStatements
       return $ st ++ sts
   )

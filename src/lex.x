@@ -30,9 +30,18 @@ tokens :-
   "continue"                              { \p s -> Continue $ getLC p }
   "break"                                 { \p s -> Break $ getLC p }
 
+  -- Built-in
+  "print"                                 { \p s -> Print $ getLC p }
+  "println"                                { \p s -> PrintLn $ getLC p }
+  "getInt"                                { \p s -> GetInt $ getLC p }
+  "getFloat"                              { \p s -> GetFloat $ getLC p }
+  "getChar"                               { \p s -> GetChar $ getLC p }
+  "getString"                             { \p s -> GetString $ getLC p }
+  "toFloat"                               { \p s -> ToFloat $ getLC p}
+  "toStr"                                 { \p s -> ToStr $ getLC p}
+  "abs"                                   { \p s -> Abs $ getLC p}
 
   -- Types
-  "double"                                { \p s -> Type $ getLC p }
   "float"                                 { \p s -> Float $ getLC p }
   "int"                                   { \p s -> Int $ getLC p }
   "char"                                  { \p s -> Char $ getLC p }
@@ -55,12 +64,7 @@ tokens :-
  "xor"                                    { \p s -> Xor $ getLC p }
  "not"                                    { \p s -> Not $ getLC p }
 
- -- int functions 
- "toFloat"                                { \p s -> ToFloat $ getLC p}
- "toStr"                                  { \p s -> ToStr $ getLC p}
- "abs"                                    { \p s -> Abs $ getLC p}
-
- -- int relations
+ -- relations
   ">="                                     { \p s -> Geq $ getLC p }
   "<="                                     { \p s -> Leq $ getLC p }
   ">"                                     { \p s -> Greater $ getLC p }
@@ -131,10 +135,16 @@ data Token
     | Or {pos :: Pos}
     | Xor {pos :: Pos}
     | Not {pos :: Pos}
-    -- Funcions
+    -- Builtin
     | ToFloat {pos :: Pos}
     | ToStr {pos :: Pos}
     | Abs {pos :: Pos}
+    | Print {pos :: Pos}
+    | PrintLn {pos :: Pos}
+    | GetInt {pos :: Pos}
+    | GetFloat {pos :: Pos}
+    | GetChar {pos :: Pos}
+    | GetString {pos :: Pos}
     -- Relations
     | Geq {pos :: Pos}
     | Leq {pos :: Pos}
