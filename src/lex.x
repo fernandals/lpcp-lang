@@ -32,7 +32,8 @@ tokens :-
 
   -- Built-in
   "print"                                 { \p s -> Print $ getLC p }
-  "println"                                { \p s -> PrintLn $ getLC p }
+  "println"                               { \p s -> PrintLn $ getLC p }
+  "printf"                                { \p s -> PrintF $ getLC p }
   "getInt"                                { \p s -> GetInt $ getLC p }
   "getFloat"                              { \p s -> GetFloat $ getLC p }
   "getChar"                               { \p s -> GetChar $ getLC p }
@@ -65,12 +66,12 @@ tokens :-
  "not"                                    { \p s -> Not $ getLC p }
 
  -- relations
-  ">="                                     { \p s -> Geq $ getLC p }
-  "<="                                     { \p s -> Leq $ getLC p }
+  ">="                                    { \p s -> Geq $ getLC p }
+  "<="                                    { \p s -> Leq $ getLC p }
   ">"                                     { \p s -> Greater $ getLC p }
   "<"                                     { \p s -> Less $ getLC p }
-  "=="                                     { \p s -> Eq $ getLC p }
-  "!="                                     { \p s -> Neq $ getLC p }
+  "=="                                    { \p s -> Eq $ getLC p }
+  "!="                                    { \p s -> Neq $ getLC p }
 
   -- Others
   $white+                                 ;
@@ -80,6 +81,7 @@ tokens :-
   \=                                      { \p s -> Assign $ getLC p }
   "{"                                     { \p s -> Begin $ getLC p }
   "}"                                     { \p s -> End $ getLC p }
+  ","                                     { \p s -> Comma $ getLC p }
 
 
   -- Ids and numbers
@@ -88,7 +90,7 @@ tokens :-
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
   \'[$alpha $digit]\'                     { \p s -> CharL (getLC p) (s !! 1)}
-  \".*\"                                  { \p s -> StringL (getLC p) (getStr s)}
+  \"[^\"]*\"                              { \p s -> StringL (getLC p) (getStr s)}
 
 {
 
@@ -141,6 +143,7 @@ data Token
     | Abs {pos :: Pos}
     | Print {pos :: Pos}
     | PrintLn {pos :: Pos}
+    | PrintF {pos :: Pos}
     | GetInt {pos :: Pos}
     | GetFloat {pos :: Pos}
     | GetChar {pos :: Pos}
@@ -155,6 +158,7 @@ data Token
     -- Names and blocks and such
     | Colon {pos :: Pos}
     | SemiColon {pos :: Pos}
+    | Comma {pos :: Pos}
     | Assign {pos :: Pos}
     | Begin {pos :: Pos}
     | End {pos :: Pos}

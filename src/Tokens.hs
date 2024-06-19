@@ -3,6 +3,7 @@ module Tokens where
 import Lexer
 import System.IO.Unsafe
 import Text.Parsec
+import Text.Parsec (tokenPrim)
 
 moduleToken :: ParsecT [Token] st IO Token
 moduleToken = tokenPrim show updatePos get_token
@@ -32,6 +33,12 @@ colonToken :: ParsecT [Token] st IO Token
 colonToken = tokenPrim show updatePos get_token
   where
     get_token (Colon pos) = Just $ Colon pos
+    get_token _ = Nothing
+
+commaToken :: ParsecT [Token] st IO Token
+commaToken = tokenPrim show updatePos get_token
+  where
+    get_token (Comma pos) = Just $ Comma pos
     get_token _ = Nothing
 
 -- Tokens para tipos

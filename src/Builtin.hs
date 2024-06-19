@@ -34,6 +34,12 @@ printLnFun = tokenPrim show updatePos get_token
     get_token (PrintLn pos) = Just $ PrintLn pos
     get_token _ = Nothing
 
+printFFun :: ParsecT [Token] st IO Token
+printFFun = tokenPrim show updatePos get_token
+  where
+    get_token (PrintF pos) = Just $ PrintF pos
+    get_token _ = Nothing
+
 getIntFun :: ParsecT [Token] st IO Token
 getIntFun = tokenPrim show updatePos get_token
   where

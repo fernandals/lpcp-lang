@@ -7,9 +7,12 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Expressions
+import GHC.IO.FD (stdout)
 import Lexer
 import State
+import System.IO
 import Text.Parsec hiding (State)
+import Text.Printf (printf)
 import Text.Read
 import Tokens
 import Utils
@@ -76,9 +79,24 @@ printst =
         (Print _) -> putStr . show
         (PrintLn _) -> print
       $ expr
+    liftIO $ hFlush System.IO.stdout
 
     endpToken
     return [comm, expr]
+
+printfst :: ParsecT [Token] State IO [Token]
+printfst =
+  do
+    comm <- printFFun
+    beginpToken
+    args <- expression `sepBy` commaToken
+    -- liftIO $ print args
+    liftIO $
+      putStrLn $
+        foldr1 (++) (show <$> args)
+
+    endpToken
+    return [comm]
 
 getst :: ParsecT [Token] State IO Token
 getst =
@@ -88,16 +106,16 @@ getst =
 
     input <- liftIO getLine
     pure $ case comm of
-      (GetInt p) -> IntL p $ parseInput input
-      (GetFloat p) -> FloatL p $ parseInput input
-      (GetChar p) -> CharL p $ parseInput input
+      (GetInt p) -> IntL p $ parseInput p input
+      (GetFloat p) -> FloatL p $ parseInput p input
+      (GetChar p) -> CharL p $ parseInput p input
       (GetString p) -> StringL p input
 
-parseInput :: (Read a) => String -> a
-parseInput = check . readMaybe
+parseInput :: (Read a) => Pos -> String -> a
+parseInput p = check p . readMaybe
   where
-    check (Just x) = x
-    check Nothing = error "Couldn't parse input. Maybe the type doesn't match?\n"
+    check p (Just x) = x
+    check p Nothing = error $ "Couldn't parse input at " ++ show p ++ ". Maybe the type doesn't match?\n"
 
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
@@ -119,14 +137,14 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- printst <|> assign
+  st <- printfst <|> printst <|> assign
   sts <- remainingStatements
   return $ st ++ sts
 
 remainingStatements :: ParsecT [Token] State IO [Token]
 remainingStatements =
   ( do
-      st <- printst <|> assign
+      st <- printfst <|> printst <|> assign
       sts <- remainingStatements
       return $ st ++ sts
   )
