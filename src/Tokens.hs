@@ -3,7 +3,6 @@ module Tokens where
 import Lexer
 import System.IO.Unsafe
 import Text.Parsec
-import Text.Parsec (tokenPrim)
 
 moduleToken :: ParsecT [Token] st IO Token
 moduleToken = tokenPrim show updatePos get_token
@@ -21,6 +20,12 @@ mutToken :: ParsecT [Token] st IO Token
 mutToken = tokenPrim show updatePos get_token
   where
     get_token (Mut pos) = Just $ Mut pos
+    get_token _ = Nothing
+
+funToken :: ParsecT [Token] st IO Token
+funToken = tokenPrim show updatePos get_token
+  where
+    get_token (Fun pos) = Just $ Fun pos
     get_token _ = Nothing
 
 assignToken :: ParsecT [Token] st IO Token
@@ -183,6 +188,18 @@ endpToken :: ParsecT [Token] st IO Token
 endpToken = tokenPrim show updatePos get_token
   where
     get_token (EndP pos) = Just $ EndP pos
+    get_token _ = Nothing
+
+beginBToken :: ParsecT [Token] st IO Token
+beginBToken = tokenPrim show updatePos get_token
+  where
+    get_token (BeginB pos) = Just $ BeginB pos
+    get_token _ = Nothing
+
+endBToken :: ParsecT [Token] st IO Token
+endBToken = tokenPrim show updatePos get_token
+  where
+    get_token (EndB pos) = Just $ EndB pos
     get_token _ = Nothing
 
 -- Tokens Bool exp

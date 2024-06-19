@@ -20,52 +20,81 @@ import Utils
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
-  name <- idToken
+  id <- idToken
   colon <- colonToken
   decltype <- types
   assign <- assignToken
   expr <- getst <|> expression
 
-  let expected_type = typeof decltype
-  let actual_type = typeof expr
+  (flag, symt, stack, scope, types, subp) <- getState
+  if not flag
+    then
+      return
+        [ modifier,
+          id,
+          colon,
+          decltype,
+          assign,
+          expr
+        ]
+    else do
+      let expected_type = typeof decltype
+      let actual_type = typeof expr
 
-  when (actual_type == "error") $
-    error $
-      "Type mismatch in expression evaluation at "
-        ++ show (pos name)
-        ++ ".\n"
-        ++ "Check the types of your operands.\n"
-  when (expected_type /= actual_type) $
-    error $
-      "Type mismatch at "
-        ++ show (pos name)
-        ++ ".\n"
-        ++ "Expected "
-        ++ expected_type
-        ++ ", got "
-        ++ actual_type
-        ++ ".\n"
+      when (actual_type == "error") $
+        error $
+          "Type mismatch in expression evaluation at "
+            ++ show (pos id)
+            ++ ".\n"
+            ++ "Check the types of your operands.\n"
+      when (expected_type /= actual_type) $
+        error $
+          "Type mismatch at "
+            ++ show (pos id)
+            ++ ".\n"
+            ++ "Expected "
+            ++ expected_type
+            ++ ", got "
+            ++ actual_type
+            ++ ".\n"
 
-  updateState $ stateInsert (modifier, decltype, name, expr)
+      setState
+        ( flag,
+          symTableInsert (name id) (modifier, decltype, expr) symt,
+          stack,
+          scope,
+          types,
+          subp
+        )
 
-  return
-    [ modifier,
-      name,
-      colon,
-      decltype,
-      assign,
-      expr
-    ]
+      return
+        [ modifier,
+          id,
+          colon,
+          decltype,
+          assign,
+          expr
+        ]
 
 assign :: ParsecT [Token] State IO [Token]
 assign = do
-  name <- idToken
+  id <- idToken
   assign <- assignToken
   expr <- getst <|> expression
 
-  updateState $ stateUpdate (name, expr)
+  (flag, symt, stack, scope, types, subp) <- getState
 
-  return [name, assign, expr]
+  when flag $
+    setState
+      ( flag,
+        symTableUpdate (name id) expr symt,
+        stack,
+        scope,
+        types,
+        subp
+      )
+
+  return [id, assign, expr]
 
 printst :: ParsecT [Token] State IO [Token]
 printst =
@@ -150,14 +179,48 @@ remainingStatements =
   )
     <|> return []
 
+blockParser :: String -> String -> ParsecT [Token] State IO [Token]
+blockParser static_parent name = do
+  beginBToken
+
+  (flag, symt, stack, scope, types, subp) <- getState
+  setState
+    ( flag,
+      symt,
+      if flag
+        then pushIntoStack name stack
+        else stack,
+      if flag && name /= "_main_"
+        then scope
+        else (name, static_parent) : scope,
+      types,
+      subp
+    )
+
+  lines <- many (many decls <|> many statements)
+
+  return $ (concat . concat) lines
+
+mainProgram :: ParsecT [Token] State IO [Token]
+mainProgram = do
+  fun <- funToken
+  main <- mainFun
+  beginpToken >> endpToken
+
+  updateState $ setFlag True
+
+  block <- blockParser "_global_" "_main_"
+
+  return $ main : block
+
 program :: ParsecT [Token] State IO [Token]
 program = do
   p <- moduleToken
   pn <- idToken
   d <- many decls
-  st <- many statements
+  main <- mainProgram
   eof
-  return $ [p, pn] ++ concat d ++ concat st
+  return $ [p, pn] ++ concat d
 
 parser :: [Token] -> IO (Either ParseError [Token])
-parser = runParserT program [] "Error"
+parser = runParserT program defaultState "Error"

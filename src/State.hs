@@ -42,6 +42,12 @@ type SubpTable = [SubpEntry]
 
 type State = (ExecutionFlag, SymTable, ActStack, ScopeTable, TypeTable, SubpTable)
 
+defaultState :: State
+defaultState = (False, [], [("_global_", 0)], [], [], [])
+
+setFlag :: Bool -> State -> State
+setFlag flag (_, symt, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
+
 getSymTable :: State -> SymTable
 getSymTable (_, symt, _, _, _, _) = symt
 
@@ -76,8 +82,15 @@ symTableUpdate name val (sym@(name', (mod, t, val') : entry) : symt)
           ++ typeof val
           ++ ".\n"
 
-symTableGetVal :: String -> SymTable -> Token
-symTableGetVal _ [] = error "No variable with given name."
-symTableGetVal name ((name', (_, _, val) : _) : symt)
+symTableGetVal :: String -> String -> SymTable -> Token
+symTableGetVal name act [] = getValByScope name act
+symTableGetVal name act ((name', (_, _, val) : _) : symt)
   | name == name' = val
-  | otherwise = symTableGetVal name symt
+  | otherwise = symTableGetVal name act symt
+
+getValByScope :: String -> String -> SymTable -> Token
+pushIntoStack :: String -> ActStack -> ActStack
+pushIntoStack name [] = [(name, 0)]
+pushIntoStack name (act@(name', depth) : stack)
+  | name == name' = (name, depth + 1) : act : stack
+  | otherwise = act : pushIntoStack name stack

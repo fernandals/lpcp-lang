@@ -18,6 +18,7 @@ tokens :-
   "module"                                { \p s -> Module $ getLC p }
   "mut"                                   { \p s -> Mut $ getLC p }
   "let"                                   { \p s -> Let $ getLC p }
+  "fun"                                   { \p s -> Fun $ getLC p }
   "if"                                    { \p s -> If $ getLC p }
   "then"                                  { \p s -> Then $ getLC p }
   "else"                                  { \p s -> Else $ getLC p }
@@ -31,6 +32,7 @@ tokens :-
   "break"                                 { \p s -> Break $ getLC p }
 
   -- Built-in
+  "main"                                  { \p s -> Main $ getLC p }
   "print"                                 { \p s -> Print $ getLC p }
   "println"                               { \p s -> PrintLn $ getLC p }
   "printf"                                { \p s -> PrintF $ getLC p }
@@ -58,6 +60,8 @@ tokens :-
   \%                                      { \p s -> Modulos $ getLC p }
   "("                                     { \p s -> BeginP $ getLC p }
   ")"                                     { \p s -> EndP $ getLC p }
+  "{"                                     { \p s -> BeginB $ getLC p }
+  "}"                                     { \p s -> EndB $ getLC p }
 
   -- Boolean operators
  "or"                                     { \p s -> Or $ getLC p }
@@ -101,6 +105,7 @@ data Token
     -- Commands and flow
     | Mut {pos :: Pos}
     | Let {pos :: Pos}
+    | Fun {pos :: Pos}
     | If {pos :: Pos}
     | Then {pos :: Pos}
     | Else {pos :: Pos}
@@ -164,7 +169,10 @@ data Token
     | End {pos :: Pos}
     | BeginP {pos :: Pos}
     | EndP {pos :: Pos}
+    | BeginB {pos :: Pos}
+    | EndB {pos :: Pos}
     | Id {pos :: Pos, name :: String}
+    | Main {pos :: Pos}
     -- Error handling
     | E {pos :: Pos}
 

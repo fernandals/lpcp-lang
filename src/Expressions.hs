@@ -157,10 +157,10 @@ unaBoolExpr :: ParsecT [Token] State IO Token
 unaBoolExpr = do
   op <- notToken
   b <- expression
-  σ <- getState
+  (_, symt, stack, _, _, _) <- getState
   case b of
     BoolL p i -> return $ BoolL p (not i)
-    Id p i -> return $ negValue (getValue (Id p i) σ)
+    Id p i -> return $ negValue $ symTableGetVal i symt
     _ -> fail "Expected a number token"
 
 unaArithExpr :: ParsecT [Token] State IO Token
