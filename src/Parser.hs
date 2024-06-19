@@ -123,6 +123,7 @@ whileLoop = do
   expr <- expression
   doT <- doToken 
   beginToken
+  -- should be a block
   endToken
 
   let actual_type = typeof expr
