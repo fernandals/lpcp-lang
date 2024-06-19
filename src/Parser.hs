@@ -117,6 +117,37 @@ parseInput p = check p . readMaybe
     check p (Just x) = x
     check p Nothing = error $ "Couldn't parse input at " ++ show p ++ ". Maybe the type doesn't match?\n"
 
+whileLoop :: ParsecT [Token] State IO [Token]
+whileLoop = do
+  whileT <- whileToken
+  expr <- expression
+  doT <- doToken 
+  beginToken
+  endToken
+
+  return [whileT, expr, doT]
+{-
+  let expected_type = typeof decltype
+  let actual_type = typeof expr
+
+  when (actual_type == "error") $
+    error $
+      "Type mismatch in expression evaluation at "
+        ++ show (pos name)
+        ++ ".\n"
+        ++ "Check the types of your operands.\n"
+  when (expected_type /= actual_type) $
+    error $
+      "Type mismatch at "
+        ++ show (pos name)
+        ++ ".\n"
+        ++ "Expected "
+        ++ expected_type
+        ++ ", got "
+        ++ actual_type
+        ++ ".\n"
+-}
+
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 

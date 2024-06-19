@@ -135,6 +135,20 @@ elifToken = tokenPrim show updatePos get_token
     get_token (Elif pos) = Just $ Elif pos
     get_token _ = Nothing
 
+-- Tokens para loops
+
+whileToken :: ParsecT [Token] st IO Token
+whileToken = tokenPrim show updatePos get_token
+  where
+    get_token (While pos) = Just $ While pos
+    get_token _ = Nothing
+
+doToken :: ParsecT [Token] st IO Token
+doToken = tokenPrim show updatePos get_token
+  where
+    get_token (Do pos) = Just $ Do pos
+    get_token _ = Nothing
+
 -- Tokens para exp arimimeticas
 
 plusToken :: ParsecT [Token] st IO Token
@@ -171,6 +185,18 @@ modulosToken :: ParsecT [Token] st IO Token
 modulosToken = tokenPrim show updatePos get_token
   where
     get_token (Modulos pos) = Just $ Modulos pos
+    get_token _ = Nothing
+
+beginToken :: ParsecT [Token] st IO Token
+beginToken = tokenPrim show updatePos get_token
+  where
+    get_token (Begin pos) = Just $ Begin pos
+    get_token _ = Nothing
+
+endToken :: ParsecT [Token] st IO Token
+endToken = tokenPrim show updatePos get_token
+  where
+    get_token (End pos) = Just $ End pos
     get_token _ = Nothing
 
 beginpToken :: ParsecT [Token] st IO Token
