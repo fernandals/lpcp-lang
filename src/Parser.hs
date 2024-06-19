@@ -125,28 +125,24 @@ whileLoop = do
   beginToken
   endToken
 
-  return [whileT, expr, doT]
-{-
-  let expected_type = typeof decltype
   let actual_type = typeof expr
-
+  
   when (actual_type == "error") $
     error $
       "Type mismatch in expression evaluation at "
-        ++ show (pos name)
+        ++ show (pos whileT)
         ++ ".\n"
         ++ "Check the types of your operands.\n"
-  when (expected_type /= actual_type) $
+  when (actual_type /= "bool") $
     error $
       "Type mismatch at "
-        ++ show (pos name)
+        ++ show (pos whileT)
         ++ ".\n"
-        ++ "Expected "
-        ++ expected_type
-        ++ ", got "
+        ++ "Expected boolean expression, got "
         ++ actual_type
         ++ ".\n"
--}
+
+  return [whileT, expr, doT]
 
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
@@ -168,7 +164,7 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- printfst <|> printst <|> assign
+  st <- printfst <|> printst <|> assign <|> whileLoop
   sts <- remainingStatements
   return $ st ++ sts
 
