@@ -45,12 +45,45 @@ type State = (ExecutionFlag, SymTable, ActStack, ScopeTable, TypeTable, SubpTabl
 defaultState :: State
 defaultState = (False, [], [("_global_", 0)], [], [], [])
 
-setFlag :: Bool -> State -> State
+-- GETS & SETS for state entries
+
+setFlag :: ExecutionFlag -> State -> State
 setFlag flag (_, symt, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
+
+getFlag :: State -> ExecutionFlag 
+getFlag (flag, _, _, _, _, _) = flag
+
+setSymTable :: SymTable -> State -> State
+setSymTable symt (flag, _, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp) 
 
 getSymTable :: State -> SymTable
 getSymTable (_, symt, _, _, _, _) = symt
 
+setStack :: ActStack -> State -> State
+setStack stack (flag, symt, _, scope, types, subp) = (flag, symt, stack, scope, types, subp) 
+
+getStack :: State -> ActStack
+getStack (_, _, stack, _, _, _) = stack
+
+setScope :: ScopeTable -> State -> State
+setScope scope (flag, symt, stack, _, types, subp) = (flag, symt, stack, scope, types, subp) 
+
+getScope :: State -> ScopeTable
+getScope (_, _, _, scope, _, _) = scope 
+
+setTypes :: TypeTable -> State -> State
+setTypes types (flag, symt, stack, scope, _, subp) = (flag, symt, stack, scope, types, subp) 
+
+getTypes :: State -> TypeTable
+getTypes (_, _, _, _, types, _) = types
+
+setSubp :: SubpTable -> State -> State
+setSubp subp (flag, symt, stack, scope, types, _) = (flag, symt, stack, scope, types, subp) 
+
+getSubp :: State -> SubpTable
+getSubp (_, _, _, _, _, subp) = subp 
+
+-- outdated!
 putSymTable :: State -> SymTable -> State
 putSymTable (flag, _, stack, scope, types, subp) symt = (flag, symt, stack, scope, types, subp)
 
@@ -89,6 +122,7 @@ symTableGetVal name act ((name', (_, _, val) : _) : symt)
   | otherwise = symTableGetVal name act symt
 
 getValByScope :: String -> String -> SymTable -> Token
+
 pushIntoStack :: String -> ActStack -> ActStack
 pushIntoStack name [] = [(name, 0)]
 pushIntoStack name (act@(name', depth) : stack)
