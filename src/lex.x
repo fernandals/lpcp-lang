@@ -30,9 +30,19 @@ tokens :-
   "continue"                              { \p s -> Continue $ getLC p }
   "break"                                 { \p s -> Break $ getLC p }
 
+  -- Built-in
+  "print"                                 { \p s -> Print $ getLC p }
+  "println"                               { \p s -> PrintLn $ getLC p }
+  "printf"                                { \p s -> PrintF $ getLC p }
+  "getInt"                                { \p s -> GetInt $ getLC p }
+  "getFloat"                              { \p s -> GetFloat $ getLC p }
+  "getChar"                               { \p s -> GetChar $ getLC p }
+  "getString"                             { \p s -> GetString $ getLC p }
+  "toFloat"                               { \p s -> ToFloat $ getLC p}
+  "toStr"                                 { \p s -> ToStr $ getLC p}
+  "abs"                                   { \p s -> Abs $ getLC p}
 
   -- Types
-  "double"                                { \p s -> Type $ getLC p }
   "float"                                 { \p s -> Float $ getLC p }
   "int"                                   { \p s -> Int $ getLC p }
   "char"                                  { \p s -> Char $ getLC p }
@@ -55,18 +65,13 @@ tokens :-
  "xor"                                    { \p s -> Xor $ getLC p }
  "not"                                    { \p s -> Not $ getLC p }
 
- -- int functions 
- "toFloat"                                { \p s -> ToFloat $ getLC p}
- "toStr"                                  { \p s -> ToStr $ getLC p}
- "abs"                                    { \p s -> Abs $ getLC p}
-
- -- int relations
-  ">="                                     { \p s -> Geq $ getLC p }
-  "<="                                     { \p s -> Leq $ getLC p }
+ -- relations
+  ">="                                    { \p s -> Geq $ getLC p }
+  "<="                                    { \p s -> Leq $ getLC p }
   ">"                                     { \p s -> Greater $ getLC p }
   "<"                                     { \p s -> Less $ getLC p }
-  "=="                                     { \p s -> Eq $ getLC p }
-  "!="                                     { \p s -> Neq $ getLC p }
+  "=="                                    { \p s -> Eq $ getLC p }
+  "!="                                    { \p s -> Neq $ getLC p }
 
   -- Others
   $white+                                 ;
@@ -76,6 +81,7 @@ tokens :-
   \=                                      { \p s -> Assign $ getLC p }
   "{"                                     { \p s -> Begin $ getLC p }
   "}"                                     { \p s -> End $ getLC p }
+  ","                                     { \p s -> Comma $ getLC p }
 
 
   -- Ids and numbers
@@ -84,7 +90,7 @@ tokens :-
   "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
   \'[$alpha $digit]\'                     { \p s -> CharL (getLC p) (s !! 1)}
-  \".*\"                                  { \p s -> StringL (getLC p) (getStr s)}
+  \"[^\"]*\"                              { \p s -> StringL (getLC p) (getStr s)}
 
 {
 
@@ -131,10 +137,17 @@ data Token
     | Or {pos :: Pos}
     | Xor {pos :: Pos}
     | Not {pos :: Pos}
-    -- Funcions
+    -- Builtin
     | ToFloat {pos :: Pos}
     | ToStr {pos :: Pos}
     | Abs {pos :: Pos}
+    | Print {pos :: Pos}
+    | PrintLn {pos :: Pos}
+    | PrintF {pos :: Pos}
+    | GetInt {pos :: Pos}
+    | GetFloat {pos :: Pos}
+    | GetChar {pos :: Pos}
+    | GetString {pos :: Pos}
     -- Relations
     | Geq {pos :: Pos}
     | Leq {pos :: Pos}
@@ -145,6 +158,7 @@ data Token
     -- Names and blocks and such
     | Colon {pos :: Pos}
     | SemiColon {pos :: Pos}
+    | Comma {pos :: Pos}
     | Assign {pos :: Pos}
     | Begin {pos :: Pos}
     | End {pos :: Pos}

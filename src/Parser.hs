@@ -7,11 +7,14 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Expressions
+import GHC.IO.FD (stdout)
 import Lexer
 import State
+import System.IO
 import Text.Parsec hiding (State)
+import Text.Printf (printf)
+import Text.Read
 import Tokens
-import Tokens (beginpToken)
 import Utils
 
 varDecl :: ParsecT [Token] State IO [Token]
@@ -21,7 +24,7 @@ varDecl = do
   colon <- colonToken
   decltype <- types
   assign <- assignToken
-  expr <- expression
+  expr <- getst <|> expression
 
   let expected_type = typeof decltype
   let actual_type = typeof expr
@@ -58,33 +61,61 @@ assign :: ParsecT [Token] State IO [Token]
 assign = do
   name <- idToken
   assign <- assignToken
-  expr <- expression
+  expr <- getst <|> expression
 
   updateState $ stateUpdate (name, expr)
 
   return [name, assign, expr]
 
 printst :: ParsecT [Token] State IO [Token]
-printst = do
-  id <- printFun
-  beginpToken
-  expr <- expression
+printst =
+  do
+    comm <- printFun <|> printLnFun
+    beginpToken
 
-  liftIO $ putStr . show $ expr
+    expr <- expression
+    liftIO
+      $ case comm of
+        (Print _) -> putStr . show
+        (PrintLn _) -> print
+      $ expr
+    liftIO $ hFlush System.IO.stdout
 
-  endpToken
-  return []
+    endpToken
+    return [comm, expr]
 
-println :: ParsecT [Token] State IO [Token]
-println = do
-  id <- printlnFun
-  beginpToken
-  expr <- expression
+printfst :: ParsecT [Token] State IO [Token]
+printfst =
+  do
+    comm <- printFFun
+    beginpToken
+    args <- expression `sepBy` commaToken
+    -- liftIO $ print args
+    liftIO $
+      putStrLn $
+        foldr1 (++) (show <$> args)
 
-  liftIO $ print expr
+    endpToken
+    return [comm]
 
-  endpToken
-  return []
+getst :: ParsecT [Token] State IO Token
+getst =
+  do
+    comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
+    beginpToken >> endpToken
+
+    input <- liftIO getLine
+    pure $ case comm of
+      (GetInt p) -> IntL p $ parseInput p input
+      (GetFloat p) -> FloatL p $ parseInput p input
+      (GetChar p) -> CharL p $ parseInput p input
+      (GetString p) -> StringL p input
+
+parseInput :: (Read a) => Pos -> String -> a
+parseInput p = check p . readMaybe
+  where
+    check p (Just x) = x
+    check p Nothing = error $ "Couldn't parse input at " ++ show p ++ ". Maybe the type doesn't match?\n"
 
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
@@ -106,14 +137,14 @@ remainingDecls =
 
 statements :: ParsecT [Token] State IO [Token]
 statements = do
-  st <- try println <|> printst <|> assign
+  st <- printfst <|> printst <|> assign
   sts <- remainingStatements
   return $ st ++ sts
 
 remainingStatements :: ParsecT [Token] State IO [Token]
 remainingStatements =
   ( do
-      st <- try println <|> printst <|> assign
+      st <- printfst <|> printst <|> assign
       sts <- remainingStatements
       return $ st ++ sts
   )

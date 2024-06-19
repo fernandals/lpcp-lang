@@ -2,6 +2,7 @@
 
 module Expressions where
 
+import Builtin
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Lexer
@@ -115,7 +116,7 @@ atomExpression = do
 
 convToFloat :: ParsecT [Token] State IO Token
 convToFloat = do
-  fun <- toFloatToken
+  fun <- toFloatFun
   l <- beginpToken
   n <- expression
   r <- endpToken
@@ -126,7 +127,7 @@ convToFloat = do
 
 convToStr :: ParsecT [Token] State IO Token
 convToStr = do
-  fun <- toStrToken
+  fun <- toStrFun
   l <- beginpToken
   n <- expression
   r <- endpToken
@@ -134,7 +135,7 @@ convToStr = do
 
 convAbs :: ParsecT [Token] State IO Token
 convAbs = do
-  fun <- absToken
+  fun <- absFun
   l <- beginpToken
   n <- expression
   r <- endpToken
