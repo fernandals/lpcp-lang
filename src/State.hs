@@ -70,6 +70,25 @@ setSubp subp (flag, symt, stack, types, _) = (flag, symt, stack, types, subp)
 getSubp :: State -> SubpTable
 getSubp (_, _, _, _, subp) = subp
 
+-- ACT STACK OPERATIONS
+pushStack :: String -> State -> State
+pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
+  if name == name'
+    then
+      ( flag,
+        symt,
+        (name, depth + 1) : act : stack,
+        types,
+        subp
+      )
+    else
+      ( flag,
+        symt,
+        (name, 0) : act : stack,
+        types,
+        subp
+      )
+
 -- SYMBOL TABLE operations
 
 symTableInsert :: String -> SymbolEntry -> State -> State
@@ -118,7 +137,7 @@ symTableGetVal :: String -> Pos -> State -> Token
 symTableGetVal "" pos _ = error "Nao achei"
 symTableGetVal name pos state =
   case symTableFindVal name (getSymTable state) of
-    Nothing -> error "nao achei"
+    Nothing -> symTableGetVal (parentScopeVar name) pos state
     Just val -> val
 
 symTableFindVal :: String -> SymTable -> Maybe Token

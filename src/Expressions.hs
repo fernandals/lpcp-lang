@@ -9,6 +9,7 @@ import Lexer
 import State
 import Text.Parsec hiding (State)
 import Tokens
+import Utils (scopeNameVar)
 
 expression :: ParsecT [Token] State IO Token -- precisa melhoria nessa ordem, pq essa foi escolhida na tentativa e erro
 expression = do
@@ -157,25 +158,32 @@ unaBoolExpr :: ParsecT [Token] State IO Token
 unaBoolExpr = do
   op <- notToken
   b <- expression
-  (_, symt, stack, _, _, _) <- getState
+
+  state@(_, _, (act_name, _) : stack, _, _) <- getState
+
   case b of
     BoolL p i -> return $ BoolL p (not i)
-    Id p i -> return $ negValue $ symTableGetVal i symt
+    Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
     _ -> fail "Expected a number token"
 
 unaArithExpr :: ParsecT [Token] State IO Token
 unaArithExpr = do
   op <- minusToken
   n1 <- subExpression
-  σ <- getState
+
+  state@(_, _, (act_name, _) : stack, _, _) <- getState
+
   case n1 of
     IntL p i -> return $ IntL p (-i)
     FloatL p i -> return $ FloatL p (-i)
-    Id p i -> return $ negValue (getValue (Id p i) σ)
+    Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
     _ -> fail "Expected a number token"
 
 evalVar :: Token -> ParsecT [Token] State IO Token
-evalVar (Id p id) = getValue (Id p id) <$> getState
+evalVar (Id p id) = do
+  state@(_, _, (act_name, _) : stack, _, _) <- getState
+
+  return $ symTableGetVal (scopeNameVar act_name id) p state
 evalVar token = return token
 
 negValue :: Token -> Token

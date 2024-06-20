@@ -21,12 +21,13 @@ varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
   id <- idToken
-  colonToken
+  colon <- colonToken
   decltype <- types
-  assignToken
+  assign <- assignToken
   expr <- getst <|> expression
 
-  (flag, symt, stack, types, subp) <- getState
+  (flag, symt, (act_name, _) : stack, types, subp) <- getState
+
   if not flag
     then
       return
@@ -58,14 +59,7 @@ varDecl = do
             ++ actual_type
             ++ ".\n"
 
-      setState
-        ( flag,
-          symTableInsert (name id) (modifier, decltype, expr) symt,
-          stack,
-          scope,
-          types,
-          subp
-        )
+      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, expr)
 
       return
         [ modifier,
@@ -82,17 +76,11 @@ assign = do
   assign <- assignToken
   expr <- getst <|> expression
 
-  (flag, symt, stack, scope, types, subp) <- getState
+  (flag, symt, (act_name, _) : stack, types, subp) <- getState
 
   when flag $
-    setState
-      ( flag,
-        symTableUpdate (name id) expr symt,
-        stack,
-        scope,
-        types,
-        subp
-      )
+    updateState $
+      symTableUpdate (scopeNameVar act_name (name id)) expr
 
   return [id, assign, expr]
 
@@ -149,6 +137,23 @@ parseInput p = check p . readMaybe
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
+globalVarDecl :: ParsecT [Token] State IO [Token]
+globalVarDecl = do
+  modifier <- letToken <|> mutToken
+  id <- idToken
+  colonToken
+  decltype <- types
+  assignToken
+  expr <- getst <|> expression
+
+  updateState $ symTableInsert (scopeNameVar "_global_" (name id)) (modifier, decltype, expr)
+
+  return [modifier, id, decltype, expr]
+
+globalDecls :: ParsecT [Token] State IO [Token]
+globalDecls = do
+  globalVarDecl
+
 decls :: ParsecT [Token] State IO [Token]
 decls = do
   varDecl
@@ -180,26 +185,13 @@ remainingStatements =
   )
     <|> return []
 
-blockParser :: String -> String -> ParsecT [Token] State IO [Token]
-blockParser static_parent name = do
+blockParser :: String -> ParsecT [Token] State IO [Token]
+blockParser name = do
   beginBToken
 
-  (flag, symt, stack, scope, types, subp) <- getState
-  setState
-    ( flag,
-      symt,
-      if flag
-        then pushIntoStack name stack
-        else stack,
-      if flag && name /= "_main_"
-        then scope
-        else (name, static_parent) : scope,
-      types,
-      subp
-    )
+  lines <- many (many1 decls <|> many1 statements)
 
-  lines <- many (many decls <|> many statements)
-
+  endBToken
   return $ (concat . concat) lines
 
 mainProgram :: ParsecT [Token] State IO [Token]
@@ -208,9 +200,12 @@ mainProgram = do
   main <- mainFun
   beginpToken >> endpToken
 
-  updateState $ setFlag True
+  let scope_name = scopeNameBlock "_global_" "main"
 
-  block <- blockParser "_global_" "_main_"
+  updateState $ setFlag True
+  updateState $ pushStack scope_name
+
+  block <- blockParser scope_name
 
   return $ main : block
 
@@ -218,7 +213,7 @@ program :: ParsecT [Token] State IO [Token]
 program = do
   p <- moduleToken
   pn <- idToken
-  d <- many decls
+  d <- many globalDecls
   main <- mainProgram
   eof
   return $ [p, pn] ++ concat d
