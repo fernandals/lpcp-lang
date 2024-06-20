@@ -21,12 +21,12 @@ varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
   id <- idToken
-  colon <- colonToken
+  colonToken
   decltype <- types
-  assign <- assignToken
+  assignToken
   expr <- getst <|> expression
 
-  (flag, symt, stack, scope, types, subp) <- getState
+  (flag, symt, stack, types, subp) <- getState
   if not flag
     then
       return
@@ -151,9 +151,10 @@ types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
 decls :: ParsecT [Token] State IO [Token]
 decls = do
-  decl <- varDecl
-  rdecls <- remainingDecls
-  return $ decl ++ rdecls
+  varDecl
+
+-- rdecls <- remainingDecls
+-- return $ decl ++ rdecls
 
 remainingDecls :: ParsecT [Token] State IO [Token]
 remainingDecls =

@@ -25,13 +25,6 @@ type ActEntry = (String, Int)
 
 type ActStack = [ActEntry]
 
--- An entry to the scope table contains the id of the entry and the id of its static parent.
--- To access things by scope, we just need to follow the static chain from our current id to all its static parents.
--- The global scope is an ancestor of everyone
-type ScopeEntry = (String, String)
-
-type ScopeTable = [ScopeEntry]
-
 type TypeEntry = String
 
 type TypeTable = [TypeEntry]
@@ -40,112 +33,75 @@ type SubpEntry = String
 
 type SubpTable = [SubpEntry]
 
-type State = (ExecutionFlag, SymTable, ActStack, ScopeTable, TypeTable, SubpTable)
+type State = (ExecutionFlag, SymTable, ActStack, TypeTable, SubpTable)
 
 defaultState :: State
-defaultState = (False, [], [("_global_", 0)], [], [], [])
+defaultState = (False, [], [("_global_", 0)], [], [])
 
 -- GETS & SETS for state entries
 
 setFlag :: ExecutionFlag -> State -> State
-setFlag flag (_, symt, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
+setFlag flag (_, symt, stack, types, subp) = (flag, symt, stack, types, subp)
 
 getFlag :: State -> ExecutionFlag
-getFlag (flag, _, _, _, _, _) = flag
+getFlag (flag, _, _, _, _) = flag
 
 setSymTable :: SymTable -> State -> State
-setSymTable symt (flag, _, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
+setSymTable symt (flag, _, stack, types, subp) = (flag, symt, stack, types, subp)
 
 getSymTable :: State -> SymTable
-getSymTable (_, symt, _, _, _, _) = symt
+getSymTable (_, symt, _, _, _) = symt
 
 setStack :: ActStack -> State -> State
-setStack stack (flag, symt, _, scope, types, subp) = (flag, symt, stack, scope, types, subp)
+setStack stack (flag, symt, _, types, subp) = (flag, symt, stack, types, subp)
 
 getStack :: State -> ActStack
-getStack (_, _, stack, _, _, _) = stack
-
-setScope :: ScopeTable -> State -> State
-setScope scope (flag, symt, stack, _, types, subp) = (flag, symt, stack, scope, types, subp)
-
-getScope :: State -> ScopeTable
-getScope (_, _, _, scope, _, _) = scope
+getStack (_, _, stack, _, _) = stack
 
 setTypes :: TypeTable -> State -> State
-setTypes types (flag, symt, stack, scope, _, subp) = (flag, symt, stack, scope, types, subp)
+setTypes types (flag, symt, stack, _, subp) = (flag, symt, stack, types, subp)
 
 getTypes :: State -> TypeTable
-getTypes (_, _, _, _, types, _) = types
+getTypes (_, _, _, types, _) = types
 
 setSubp :: SubpTable -> State -> State
-setSubp subp (flag, symt, stack, scope, types, _) = (flag, symt, stack, scope, types, subp)
+setSubp subp (flag, symt, stack, types, _) = (flag, symt, stack, types, subp)
 
 getSubp :: State -> SubpTable
-getSubp (_, _, _, _, _, subp) = subp
+getSubp (_, _, _, _, subp) = subp
 
 -- SYMBOL TABLE operations
 
 symTableInsert :: String -> SymbolEntry -> State -> State
 symTableInsert name entry state =
-  case curr_symt of
+  case getSymTable state of
     [] -> setSymTable [(name, [entry])] state
     sym@(name', entry') : symt ->
       if name == name'
         then error "This variable already exists and can't be redeclared.\n" -- missing recursion depth
-        else setSymTable $ sym : getSymTable insert_state
-  where
-    curr_symt = getSymTable state
-    pop_state = setSymTable symt state -- sem o primeiro simbolo
-    insert_state = symTableInsert name entry pop_state
-
-{-
-symTableInsert :: String -> SymbolEntry -> SymTable -> SymTable
-symTableInsert name entry [] = [(name, [entry])]
-symTableInsert name entry (sym@(name', entry') : symt)
-  | name == name' = error "."
-  | otherwise = sym : symTableInsert name entry symt
--}
+        else setSymTable (sym : getSymTable insert_state) state
+      where
+        pop_state = setSymTable symt state
+        insert_state = symTableInsert name entry pop_state
 
 symTableUpdate :: String -> Token -> State -> State
 symTableUpdate "" val _ = error "Nao achei"
 symTableUpdate name val state =
-  case curr_state of
-    [] -> error "Preciso achar em outros escopos!!!!!!!!!!!!"
-    (sym@(name', (mod, t, val') : entries) : symt) ->
-      if name == name'
-        then case mod of
-          Mut _ ->
-            if typeof val /= typeof t
-              then typerror
-              else setSymTable (name', (mod, t, val) : entries) : symt
-          Let _ -> error "You can't change an immutable variable.\n"
-        else setSymTable $ sym : getSymTable update_state
-  where
-    curr_state = getSymTable state
-    pop_state = setSymTable symt state
-    update_state = symTableUpdate name val pop_state
-    typerror =
-      error $
-        "Type mismatch at "
-          ++ show (pos val)
-          ++ ".\n"
-          ++ "Expected "
-          ++ typeof t
-          ++ ", got "
-          ++ typeof val
-          ++ ".\n"
+  case symTableFindUpdate name val (getSymTable state) of
+    Nothing -> symTableUpdate (parentScopeVar name) val state
+    Just symt -> setSymTable symt state
 
-{-
-symTableUpdate :: String -> Token -> SymTable -> SymTable
-symTableUpdate _ _ [] = error "No variable with given name.\n"
-symTableUpdate name val (sym@(name', (mod, t, val') : entry) : symt)
-  | name == name' = case mod of
+symTableFindUpdate :: String -> Token -> SymTable -> Maybe SymTable
+symTableFindUpdate _ _ [] = Nothing
+symTableFindUpdate name val (sym@(name', (mod, t, val') : entries) : symt) =
+  if name == name'
+    then case mod of
       Mut _ ->
         if typeof val /= typeof t
           then typerror
-          else (name', (mod, t, val) : entry) : symt
+          else Just $ (name', (mod, t, val) : entries) : symt
       Let _ -> error "You can't change an immutable variable.\n"
-  | otherwise = sym : symTableUpdate name val symt
+    else (sym :) <$> symTableFindUpdate name val symt
   where
     typerror =
       error $
@@ -157,17 +113,17 @@ symTableUpdate name val (sym@(name', (mod, t, val') : entry) : symt)
           ++ ", got "
           ++ typeof val
           ++ ".\n"
--}
 
-symTableGetVal :: String -> String -> SymTable -> Token
-symTableGetVal name act [] = getValByScope name act
-symTableGetVal name act ((name', (_, _, val) : _) : symt)
-  | name == name' = val
-  | otherwise = symTableGetVal name act symt
+symTableGetVal :: String -> Pos -> State -> Token
+symTableGetVal "" pos _ = error "Nao achei"
+symTableGetVal name pos state =
+  case symTableFindVal name (getSymTable state) of
+    Nothing -> error "nao achei"
+    Just val -> val
 
-getValByScope :: String -> String -> SymTable -> Token
-pushIntoStack :: String -> ActStack -> ActStack
-pushIntoStack name [] = [(name, 0)]
-pushIntoStack name (act@(name', depth) : stack)
-  | name == name' = (name, depth + 1) : act : stack
-  | otherwise = act : pushIntoStack name stack
+symTableFindVal :: String -> SymTable -> Maybe Token
+symTableFindVal _ [] = Nothing
+symTableFindVal name (sym@(name', (_, _, val) : entries) : symt) =
+  if name == name'
+    then Just val
+    else symTableFindVal name symt
