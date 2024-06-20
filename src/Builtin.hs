@@ -4,17 +4,6 @@ import Lexer
 import Text.Parsec
 import Tokens
 
-setNameVar :: String -> String -> String
-setNameVar static_parent id = "_" ++ static_parent ++ "_" ++ "#" ++ id
-
-getNameVar :: String -> (String, String)
-getNameVar name = (static_parent, id)
-  where
-    (static_parent, rest) = break (== '#') name 
-    id = case rest of
-           [] -> ""
-	   (:str) -> str
-
 mainFun :: ParsecT [Token] st IO Token
 mainFun = tokenPrim show updatePos get_token
   where

@@ -50,52 +50,52 @@ defaultState = (False, [], [("_global_", 0)], [], [], [])
 setFlag :: ExecutionFlag -> State -> State
 setFlag flag (_, symt, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
 
-getFlag :: State -> ExecutionFlag 
+getFlag :: State -> ExecutionFlag
 getFlag (flag, _, _, _, _, _) = flag
 
 setSymTable :: SymTable -> State -> State
-setSymTable symt (flag, _, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp) 
+setSymTable symt (flag, _, stack, scope, types, subp) = (flag, symt, stack, scope, types, subp)
 
 getSymTable :: State -> SymTable
 getSymTable (_, symt, _, _, _, _) = symt
 
 setStack :: ActStack -> State -> State
-setStack stack (flag, symt, _, scope, types, subp) = (flag, symt, stack, scope, types, subp) 
+setStack stack (flag, symt, _, scope, types, subp) = (flag, symt, stack, scope, types, subp)
 
 getStack :: State -> ActStack
 getStack (_, _, stack, _, _, _) = stack
 
 setScope :: ScopeTable -> State -> State
-setScope scope (flag, symt, stack, _, types, subp) = (flag, symt, stack, scope, types, subp) 
+setScope scope (flag, symt, stack, _, types, subp) = (flag, symt, stack, scope, types, subp)
 
 getScope :: State -> ScopeTable
-getScope (_, _, _, scope, _, _) = scope 
+getScope (_, _, _, scope, _, _) = scope
 
 setTypes :: TypeTable -> State -> State
-setTypes types (flag, symt, stack, scope, _, subp) = (flag, symt, stack, scope, types, subp) 
+setTypes types (flag, symt, stack, scope, _, subp) = (flag, symt, stack, scope, types, subp)
 
 getTypes :: State -> TypeTable
 getTypes (_, _, _, _, types, _) = types
 
 setSubp :: SubpTable -> State -> State
-setSubp subp (flag, symt, stack, scope, types, _) = (flag, symt, stack, scope, types, subp) 
+setSubp subp (flag, symt, stack, scope, types, _) = (flag, symt, stack, scope, types, subp)
 
 getSubp :: State -> SubpTable
-getSubp (_, _, _, _, _, subp) = subp 
+getSubp (_, _, _, _, _, subp) = subp
 
--- SYMBOL TABLE operations 
+-- SYMBOL TABLE operations
 
-symTableInsert :: String -> SymbolEntry -> State -> State 
+symTableInsert :: String -> SymbolEntry -> State -> State
 symTableInsert name entry state =
   case curr_symt of
     [] -> setSymTable [(name, [entry])] state
-    sym@(name', entry') : symt -> 
+    sym@(name', entry') : symt ->
       if name == name'
-        then error "This variable already exists and can't be redeclared.\n"
-        else setSymTable $ (sym : getSymTable insert_state)
+        then error "This variable already exists and can't be redeclared.\n" -- missing recursion depth
+        else setSymTable $ sym : getSymTable insert_state
   where
-    curr_symt    = getSymTable state
-    pop_state    = setSymTable symt state -- sem o primeiro simbolo
+    curr_symt = getSymTable state
+    pop_state = setSymTable symt state -- sem o primeiro simbolo
     insert_state = symTableInsert name entry pop_state
 
 {-
@@ -107,21 +107,22 @@ symTableInsert name entry (sym@(name', entry') : symt)
 -}
 
 symTableUpdate :: String -> Token -> State -> State
+symTableUpdate "" val _ = error "Nao achei"
 symTableUpdate name val state =
   case curr_state of
     [] -> error "Preciso achar em outros escopos!!!!!!!!!!!!"
     (sym@(name', (mod, t, val') : entries) : symt) ->
       if name == name'
         then case mod of
-      	  Mut _ ->
-	    if typeof val /= typeof t
+          Mut _ ->
+            if typeof val /= typeof t
               then typerror
-              else setSymTable (name', (mod, t, val) : entries) : symt 
-	  Let _ -> error "You can't change an immutable variable.\n"	
-	else setSymTable $ sym : getSymTable update_state 
+              else setSymTable (name', (mod, t, val) : entries) : symt
+          Let _ -> error "You can't change an immutable variable.\n"
+        else setSymTable $ sym : getSymTable update_state
   where
-    curr_state   = getSymTable state
-    pop_state    = setSymTable symt state
+    curr_state = getSymTable state
+    pop_state = setSymTable symt state
     update_state = symTableUpdate name val pop_state
     typerror =
       error $
@@ -165,7 +166,6 @@ symTableGetVal name act ((name', (_, _, val) : _) : symt)
   | otherwise = symTableGetVal name act symt
 
 getValByScope :: String -> String -> SymTable -> Token
-
 pushIntoStack :: String -> ActStack -> ActStack
 pushIntoStack name [] = [(name, 0)]
 pushIntoStack name (act@(name', depth) : stack)
