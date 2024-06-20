@@ -83,16 +83,58 @@ setSubp subp (flag, symt, stack, scope, types, _) = (flag, symt, stack, scope, t
 getSubp :: State -> SubpTable
 getSubp (_, _, _, _, _, subp) = subp 
 
--- outdated!
-putSymTable :: State -> SymTable -> State
-putSymTable (flag, _, stack, scope, types, subp) symt = (flag, symt, stack, scope, types, subp)
+-- SYMBOL TABLE operations 
 
+symTableInsert :: String -> SymbolEntry -> State -> State 
+symTableInsert name entry state =
+  case curr_symt of
+    [] -> setSymTable [(name, [entry])] state
+    sym@(name', entry') : symt -> 
+      if name == name'
+        then error "This variable already exists and can't be redeclared.\n"
+        else setSymTable $ (sym : getSymTable insert_state)
+  where
+    curr_symt    = getSymTable state
+    pop_state    = setSymTable symt state -- sem o primeiro simbolo
+    insert_state = symTableInsert name entry pop_state
+
+{-
 symTableInsert :: String -> SymbolEntry -> SymTable -> SymTable
 symTableInsert name entry [] = [(name, [entry])]
 symTableInsert name entry (sym@(name', entry') : symt)
   | name == name' = error "."
   | otherwise = sym : symTableInsert name entry symt
+-}
 
+symTableUpdate :: String -> Token -> State -> State
+symTableUpdate name val state =
+  case curr_state of
+    [] -> error "Preciso achar em outros escopos!!!!!!!!!!!!"
+    (sym@(name', (mod, t, val') : entries) : symt) ->
+      if name == name'
+        then case mod of
+      	  Mut _ ->
+	    if typeof val /= typeof t
+              then typerror
+              else setSymTable (name', (mod, t, val) : entries) : symt 
+	  Let _ -> error "You can't change an immutable variable.\n"	
+	else setSymTable $ sym : getSymTable update_state 
+  where
+    curr_state   = getSymTable state
+    pop_state    = setSymTable symt state
+    update_state = symTableUpdate name val pop_state
+    typerror =
+      error $
+        "Type mismatch at "
+          ++ show (pos val)
+          ++ ".\n"
+          ++ "Expected "
+          ++ typeof t
+          ++ ", got "
+          ++ typeof val
+          ++ ".\n"
+
+{-
 symTableUpdate :: String -> Token -> SymTable -> SymTable
 symTableUpdate _ _ [] = error "No variable with given name.\n"
 symTableUpdate name val (sym@(name', (mod, t, val') : entry) : symt)
@@ -114,6 +156,7 @@ symTableUpdate name val (sym@(name', (mod, t, val') : entry) : symt)
           ++ ", got "
           ++ typeof val
           ++ ".\n"
+-}
 
 symTableGetVal :: String -> String -> SymTable -> Token
 symTableGetVal name act [] = getValByScope name act
