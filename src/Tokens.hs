@@ -3,6 +3,7 @@ module Tokens where
 import Lexer
 import System.IO.Unsafe
 import Text.Parsec
+import Text.Parsec (ParsecT)
 
 moduleToken :: ParsecT [Token] st IO Token
 moduleToken = tokenPrim show updatePos get_token
@@ -78,34 +79,10 @@ stringToken = tokenPrim show updatePos get_token
     get_token (String pos) = Just $ String pos
     get_token _ = Nothing
 
-intLToken :: ParsecT [Token] st IO Token
-intLToken = tokenPrim show updatePos get_token
+literalValueToken :: ParsecT [Token] st IO Token
+literalValueToken = tokenPrim show updatePos get_token
   where
-    get_token (IntL pos n) = Just $ IntL pos n
-    get_token _ = Nothing
-
-floatLToken :: ParsecT [Token] st IO Token
-floatLToken = tokenPrim show updatePos get_token
-  where
-    get_token (FloatL pos n) = Just $ FloatL pos n
-    get_token _ = Nothing
-
-boolLToken :: ParsecT [Token] st IO Token
-boolLToken = tokenPrim show updatePos get_token
-  where
-    get_token (BoolL pos n) = Just $ BoolL pos n
-    get_token _ = Nothing
-
-charLToken :: ParsecT [Token] st IO Token
-charLToken = tokenPrim show updatePos get_token
-  where
-    get_token (CharL pos n) = Just $ CharL pos n
-    get_token _ = Nothing
-
-stringLToken :: ParsecT [Token] st IO Token
-stringLToken = tokenPrim show updatePos get_token
-  where
-    get_token (StringL pos n) = Just $ StringL pos n
+    get_token (LiteralValue pos val) = Just $ LiteralValue pos val
     get_token _ = Nothing
 
 -- Outros tokens

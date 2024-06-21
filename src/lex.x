@@ -58,10 +58,14 @@ tokens :-
   \/                                      { \p s -> Divides $ getLC p }
   \^                                      { \p s -> Pow $ getLC p }
   \%                                      { \p s -> Modulos $ getLC p }
+
+  -- Various Brackets
   "("                                     { \p s -> BeginP $ getLC p }
   ")"                                     { \p s -> EndP $ getLC p }
   "{"                                     { \p s -> BeginB $ getLC p }
   "}"                                     { \p s -> EndB $ getLC p }
+  "["                                     { \p s -> BeginSB $ getLC p }
+  "]"                                     { \p s -> EndSB $ getLC p }
 
   -- Boolean operators
  "or"                                     { \p s -> Or $ getLC p }
@@ -83,22 +87,36 @@ tokens :-
   ":"                                     { \p s -> Colon $ getLC p }
   ";"                                     { \p s -> SemiColon $ getLC p }
   \=                                      { \p s -> Assign $ getLC p }
-  "{"                                     { \p s -> Begin $ getLC p }
-  "}"                                     { \p s -> End $ getLC p }
   ","                                     { \p s -> Comma $ getLC p }
 
 
-  -- Ids and numbers
-  $digit+                                 { \p s -> IntL (getLC p) (read s) }
-  $digit+\.$digit                         { \p s -> FloatL (getLC p) (read s) }
-  "true" | "false"                        { \p s -> BoolL (getLC p) (readbool s) }
-  $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
-  \'[$alpha $digit]\'                     { \p s -> CharL (getLC p) (s !! 1)}
-  \"[^\"]*\"                              { \p s -> StringL (getLC p) (getStr s)}
+  -- Literals
+  $digit+                                 { \p s -> LiteralValue (getLC p) (I $ read s) }
+  $digit+\.$digit                         { \p s -> LiteralValue (getLC p) (F $ read s) }
+  "true" | "false"                        { \p s -> LiteralValue (getLC p) (B $ readbool s) }
+  \'[$alpha $digit]\'                     { \p s -> LiteralValue (getLC p) (C $ s !! 1) }
+  \"[^\"]*\"                              { \p s -> LiteralValue (getLC p) (S $ getStr s) }
 
+  -- Id
+  $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
 {
 
 type Pos = (Int, Int)
+
+data Type
+    = I Int
+    | F Float
+    | B Bool
+    | C Char
+    | S String
+    deriving ( Eq )
+
+instance Show Type where
+    show (I i) = show i
+    show (F f) = show f
+    show (B b) = show b
+    show (C c) = show c
+    show (S s) = s
 
 data Token
     = Module {pos :: Pos}
@@ -118,18 +136,13 @@ data Token
     | Continue {pos :: Pos}
     | Return {pos :: Pos}
     -- Types
-    | Type {pos :: Pos} --placeholder
     | Int {pos :: Pos}
     | Float {pos :: Pos}
     | String {pos :: Pos}
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
     -- Literals
-    | IntL {pos :: Pos, int :: Integer}
-    | FloatL {pos :: Pos, float :: Float}
-    | StringL {pos :: Pos, string :: String}
-    | BoolL {pos :: Pos, bool :: Bool}
-    | CharL {pos :: Pos, char :: Char}
+    | LiteralValue {pos :: Pos, val :: Type}
     -- Operators
     | Plus {pos :: Pos}
     | Minus {pos :: Pos}
@@ -165,12 +178,12 @@ data Token
     | SemiColon {pos :: Pos}
     | Comma {pos :: Pos}
     | Assign {pos :: Pos}
-    | Begin {pos :: Pos}
-    | End {pos :: Pos}
     | BeginP {pos :: Pos}
     | EndP {pos :: Pos}
     | BeginB {pos :: Pos}
     | EndB {pos :: Pos}
+    | BeginSB {pos :: Pos}
+    | EndSB {pos :: Pos}
     | Id {pos :: Pos, name :: String}
     | Main {pos :: Pos}
     -- Error handling
@@ -180,11 +193,7 @@ instance Eq Token where
     (Id {name = s}) == (Id {name = s'}) = s == s'
 
 instance Show Token where
-    show (IntL {..}) = show int
-    show (FloatL {..}) = show float
-    show (BoolL {..}) = show bool
-    show (CharL {..}) = show char
-    show (StringL {..}) = string
+    show (LiteralValue {..}) = show val
     show _ = ""
 
 -- helpers

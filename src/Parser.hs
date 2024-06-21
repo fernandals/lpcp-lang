@@ -50,14 +50,7 @@ varDecl = do
             ++ "Check the types of your operands.\n"
       when (expected_type /= actual_type) $
         error $
-          "Type mismatch at "
-            ++ show (pos id)
-            ++ ".\n"
-            ++ "Expected "
-            ++ expected_type
-            ++ ", got "
-            ++ actual_type
-            ++ ".\n"
+          typeErrorMsg (pos id) decltype expr
 
       updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, expr)
 
@@ -123,10 +116,10 @@ getst =
 
     input <- liftIO getLine
     pure $ case comm of
-      (GetInt p) -> IntL p $ parseInput p input
-      (GetFloat p) -> FloatL p $ parseInput p input
-      (GetChar p) -> CharL p $ parseInput p input
-      (GetString p) -> StringL p input
+      (GetInt p) -> LiteralValue p (I $ parseInput p input)
+      (GetFloat p) -> LiteralValue p (F $ parseInput p input)
+      (GetChar p) -> LiteralValue p (C $ parseInput p input)
+      (GetString p) -> LiteralValue p (S input)
 
 parseInput :: (Read a) => Pos -> String -> a
 parseInput p = check p . readMaybe
@@ -145,6 +138,19 @@ globalVarDecl = do
   decltype <- types
   assignToken
   expr <- getst <|> expression
+
+  let expected_type = typeof decltype
+  let actual_type = typeof expr
+
+  when (actual_type == "error") $
+    error $
+      "Type mismatch in expression evaluation at "
+        ++ show (pos id)
+        ++ ".\n"
+        ++ "Check the types of your operands.\n"
+  when (expected_type /= actual_type) $
+    error $
+      typeErrorMsg (pos id) decltype expr
 
   updateState $ symTableInsert (scopeNameVar "_global_" (name id)) (modifier, decltype, expr)
 

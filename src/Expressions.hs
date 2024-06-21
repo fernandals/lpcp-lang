@@ -6,10 +6,11 @@ import Builtin
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Lexer
+import Lexer (Token (LiteralValue))
 import State
 import Text.Parsec hiding (State)
 import Tokens
-import Utils (scopeNameVar)
+import Utils
 
 expression :: ParsecT [Token] State IO Token -- precisa melhoria nessa ordem, pq essa foi escolhida na tentativa e erro
 expression = do
@@ -102,15 +103,7 @@ base = subBracket <|> atomExpression
 
 atomExpression :: ParsecT [Token] State IO Token
 atomExpression = do
-  n <-
-    intLToken
-      <|> floatLToken
-      <|> charLToken
-      <|> stringLToken
-      <|> boolLToken
-      <|> idToken
-      <|> convToFloat
-      <|> convAbs
+  n <- literalValueToken <|> idToken <|> convToFloat <|> convAbs
   evalVar n
 
 -- Functions
@@ -122,9 +115,9 @@ convToFloat = do
   n <- expression
   r <- endpToken
   nEvaluated <- evalVar n
-  case nEvaluated of
-    IntL p i -> return $ FloatL p (fromIntegral i)
-    _ -> fail "Expected an integer token"
+  case val nEvaluated of
+    (I i) -> return $ LiteralValue (pos n) $ F (fromIntegral i)
+    t -> error $ typeErrorUnary (pos n) "(toFloat)" t
 
 convToStr :: ParsecT [Token] State IO Token
 convToStr = do
@@ -132,7 +125,7 @@ convToStr = do
   l <- beginpToken
   n <- expression
   r <- endpToken
-  return $ StringL (pos n) (show (valueInt n))
+  return $ LiteralValue (pos n) (S $ show (val n))
 
 convAbs :: ParsecT [Token] State IO Token
 convAbs = do
@@ -140,17 +133,11 @@ convAbs = do
   l <- beginpToken
   n <- expression
   r <- endpToken
-  return $ IntL (pos n) (abs (valueInt n))
-
--- AUX
-
-valueInt :: Token -> Integer
-valueInt (IntL p n) = n
-valueInt _ = error "Not a integer token"
-
-valueFloat :: Token -> Float
-valueFloat (FloatL p n) = n
-valueFloat _ = error "Not a float token"
+  return $ LiteralValue (pos n) (to_abs (pos n) $ val n)
+  where
+    to_abs p (I i) = I (abs i)
+    to_abs p (F f) = F (abs f)
+    to_abs p t = error $ typeErrorUnary p "(abs)" t
 
 -- GAMBIARRA UNARIAS & BRACKETs
 
@@ -162,9 +149,8 @@ unaBoolExpr = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
 
   case b of
-    BoolL p i -> return $ BoolL p (not i)
+    LiteralValue p (B b) -> return $ LiteralValue p (B $ not b)
     Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
-    _ -> fail "Expected a number token"
 
 unaArithExpr :: ParsecT [Token] State IO Token
 unaArithExpr = do
@@ -174,10 +160,9 @@ unaArithExpr = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
 
   case n1 of
-    IntL p i -> return $ IntL p (-i)
-    FloatL p i -> return $ FloatL p (-i)
+    LiteralValue p (I i) -> return $ LiteralValue p (I (-i))
+    LiteralValue p (F f) -> return $ LiteralValue p (F (-f))
     Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
-    _ -> fail "Expected a number token"
 
 evalVar :: Token -> ParsecT [Token] State IO Token
 evalVar (Id p id) = do
@@ -187,10 +172,11 @@ evalVar (Id p id) = do
 evalVar token = return token
 
 negValue :: Token -> Token
-negValue (BoolL p b) = BoolL p (not b)
-negValue (IntL p n) = IntL p (-n)
-negValue (FloatL p n) = FloatL p (-n)
-negValue _ = error "is not a value"
+negValue (LiteralValue p a) =
+  case a of
+    B b -> LiteralValue p (B $ not b)
+    I i -> LiteralValue p (I (-i))
+    F f -> LiteralValue p (F (-f))
 
 bracket :: ParsecT [Token] State IO Token
 bracket = do
@@ -209,49 +195,102 @@ subBracket = do
 -- EVAL
 
 eval :: Token -> Token -> Token -> Token
--- ARITH
-eval (IntL p x) (Plus _) (IntL r y) = IntL p (x + y)
-eval (IntL p x) (Minus _) (IntL r y) = IntL p (x - y)
-eval (IntL p x) (Times _) (IntL r y) = IntL p (x * y)
-eval (IntL p x) (Divides _) (IntL r y) = IntL p (x `div` y)
-eval (IntL p x) (Pow _) (IntL r y) = if y >= 0 then IntL p (x ^ y) else error "Type mismatch: change to float"
-eval (IntL p x) (Modulos _) (IntL r y) = IntL p (mod x y)
-eval (FloatL p x) (Plus _) (FloatL r y) = FloatL p (x + y)
-eval (FloatL p x) (Minus _) (FloatL r y) = FloatL p (x - y)
-eval (FloatL p x) (Times _) (FloatL r y) = FloatL p (x * y)
-eval (FloatL p x) (Divides _) (FloatL r y) = FloatL p (x / y)
-eval (FloatL p x) (Pow _) (IntL r y) = if y >= 0 then FloatL p (x ^ y) else FloatL p (1 / (x ^ (-y)))
--- BOOL
-eval (BoolL p x) (And _) (BoolL r y) = BoolL p (x && y)
-eval (BoolL p x) (Or _) (BoolL r y) = BoolL p (x || y)
-eval (BoolL p x) (Xor _) (BoolL r y) = BoolL p $ (not x && y) || (x && not y)
--- RELATIONS
-eval (BoolL p x) (Eq r) (BoolL q y) = BoolL p (x == y)
-eval (BoolL p x) (Neq r) (BoolL q y) = BoolL p (x /= y)
-eval (FloatL p x) (Leq r) (FloatL q y) = BoolL p (x <= y)
-eval (FloatL p x) (Geq r) (FloatL q y) = BoolL p (x >= y)
-eval (FloatL p x) (Less r) (FloatL q y) = BoolL p (x < y)
-eval (FloatL p x) (Greater r) (FloatL q y) = BoolL p (x > y)
-eval (FloatL p x) (Eq r) (FloatL q y) = BoolL p (x == y)
-eval (FloatL p x) (Neq r) (FloatL q y) = BoolL p (x /= y)
-eval (IntL p x) (Leq r) (IntL q y) = BoolL p (x <= y)
-eval (IntL p x) (Geq r) (IntL q y) = BoolL p (x >= y)
-eval (IntL p x) (Less r) (IntL q y) = BoolL p (x < y)
-eval (IntL p x) (Greater r) (IntL q y) = BoolL p (x > y)
-eval (IntL p x) (Eq r) (IntL q y) = BoolL p (x == y)
-eval (IntL p x) (Neq r) (IntL q y) = BoolL p (x /= y)
-eval (CharL p x) (Leq r) (CharL q y) = BoolL p (x <= y)
-eval (CharL p x) (Geq r) (CharL q y) = BoolL p (x >= y)
-eval (CharL p x) (Less r) (CharL q y) = BoolL p (x < y)
-eval (CharL p x) (Greater r) (CharL q y) = BoolL p (x > y)
-eval (CharL p x) (Eq r) (CharL q y) = BoolL p (x == y)
-eval (CharL p x) (Neq r) (CharL q y) = BoolL p (x /= y)
-eval (StringL p x) (Leq r) (StringL q y) = BoolL p (x <= y)
-eval (StringL p x) (Geq r) (StringL q y) = BoolL p (x >= y)
-eval (StringL p x) (Less r) (StringL q y) = BoolL p (x < y)
-eval (StringL p x) (Greater r) (StringL q y) = BoolL p (x > y)
-eval (StringL p x) (Eq r) (StringL q y) = BoolL p (x == y)
-eval (StringL p x) (Neq r) (StringL q y) = BoolL p (x /= y)
--- IF NOTHING ELSE...
-eval (E p) _ _ = E p
-eval operand _ _ = E (pos operand)
+eval (LiteralValue p a) (Plus _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) -> I $ n + m
+    (F x, F y) -> F $ x + y
+    (a, b) -> error $ typeErrorExprMsg p "(+)" a b
+eval (LiteralValue p a) (Minus _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) -> I $ n - m
+    (F x, F y) -> F $ x - y
+    (a, b) -> error $ typeErrorExprMsg p "(-)" a b
+eval (LiteralValue p a) (Times _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) -> I $ n * m
+    (F x, F y) -> F $ x * y
+    (a, b) -> error $ typeErrorExprMsg p "(*)" a b
+eval (LiteralValue p a) (Divides _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) -> I $ n `div` m
+    (F x, F y) -> F $ x / y
+    (a, b) -> error $ typeErrorExprMsg p "(/)" a b
+eval (LiteralValue p a) (Pow _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) ->
+      if m >= 0
+        then I $ n ^ m
+        else
+          error $
+            "Error at evaluation of expression in "
+              ++ show p
+              ++ ".\nFound negative exponent with an integer base.\n"
+    (F x, I y) ->
+      if y >= 0
+        then F $ x ^ y
+        else F $ 1 / (x ^ (-y))
+    (a, b) -> error $ typeErrorExprMsg p "(^)" a b
+eval (LiteralValue p a) (Modulos _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (I n, I m) -> I $ mod n m
+    (a, b) -> error $ typeErrorExprMsg p "(%)" a b
+eval (LiteralValue p a) (And _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p && q
+    (a, b) -> error $ typeErrorExprMsg p "(and)" a b
+eval (LiteralValue p a) (Or _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p || q
+    (a, b) -> error $ typeErrorExprMsg p "(or)" a b
+eval (LiteralValue p a) (Xor _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ (not p && q) || (p && not q)
+    (a, b) -> error $ typeErrorExprMsg p "(xor)" a b
+eval (LiteralValue p a) (Eq _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p == q
+    (I n, I m) -> B $ n == m
+    (F x, F y) -> B $ x == y
+    (C c, C d) -> B $ c == d
+    (S s, S u) -> B $ s == u
+    (a, b) -> error $ typeErrorRelation p "(==)" a b
+eval (LiteralValue p a) (Neq _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p /= q
+    (I n, I m) -> B $ n /= m
+    (F x, F y) -> B $ x /= y
+    (C c, C d) -> B $ c /= d
+    (S s, S u) -> B $ s /= u
+    (a, b) -> error $ typeErrorRelation p "(!=)" a b
+eval (LiteralValue p a) (Leq _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p <= q
+    (I n, I m) -> B $ n <= m
+    (F x, F y) -> B $ x <= y
+    (C c, C d) -> B $ c <= d
+    (S s, S u) -> B $ s <= u
+    (a, b) -> error $ typeErrorRelation p "(<=)" a b
+eval (LiteralValue p a) (Geq _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p >= q
+    (I n, I m) -> B $ n >= m
+    (F x, F y) -> B $ x >= y
+    (C c, C d) -> B $ c >= d
+    (S s, S u) -> B $ s >= u
+    (a, b) -> error $ typeErrorRelation p "(>=)" a b
+eval (LiteralValue p a) (Less _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p < q
+    (I n, I m) -> B $ n < m
+    (F x, F y) -> B $ x < y
+    (C c, C d) -> B $ c < d
+    (S s, S u) -> B $ s < u
+    (a, b) -> error $ typeErrorRelation p "(<)" a b
+eval (LiteralValue p a) (Greater _) (LiteralValue p' b) = LiteralValue p $
+  case (a, b) of
+    (B p, B q) -> B $ p > q
+    (I n, I m) -> B $ n > m
+    (F x, F y) -> B $ x > y
+    (C c, C d) -> B $ c > d
+    (S s, S u) -> B $ s > u
+    (a, b) -> error $ typeErrorRelation p "(>)" a b
