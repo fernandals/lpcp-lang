@@ -4,6 +4,12 @@ import Lexer
 import Text.Parsec
 import Tokens
 
+mainFun :: ParsecT [Token] st IO Token
+mainFun = tokenPrim show updatePos get_token
+  where
+    get_token (Main pos) = Just $ Main pos
+    get_token _ = Nothing
+
 toFloatFun :: ParsecT [Token] st IO Token
 toFloatFun = tokenPrim show updatePos get_token
   where
