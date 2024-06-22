@@ -8,6 +8,9 @@ import Lexer
 canExecute :: Bool -> String -> Bool
 canExecute flag act_name = flag || ("_global_" == act_name)
 
+isTrue :: Token -> Bool
+isTrue (LiteralValue p (B b)) = b
+
 typeof' :: Type -> String
 typeof' (I _) = "int"
 typeof' (F _) = "float"
@@ -30,6 +33,11 @@ scopeNameBlock env_parent block_name = env_parent ++ "._" ++ block_name ++ "_"
 
 scopeNameVar :: String -> String -> String
 scopeNameVar static_parent id = static_parent ++ "." ++ id
+
+inScope :: String -> String -> Bool
+inScope scope_name name = scope_name == scope name
+  where
+    scope = intercalate "." . init . split
 
 split :: String -> [String]
 split "" = [""]

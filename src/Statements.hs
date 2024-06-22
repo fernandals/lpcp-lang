@@ -26,7 +26,6 @@ assignSt :: ParsecT [Token] State IO [Token]
 assignSt = do
   id <- idToken
   assign <- assignToken
-  expr <- getSt <|> expression
 
   (flag, symt, (act_name, _) : stack, types, subp) <- getState
   if canExecute flag act_name
@@ -70,13 +69,8 @@ printfSt =
     (flag, _, (act_name, _) : _, _, _) <- getState
     if canExecute flag act_name
       then do
-        lp <- beginpToken
-        args <- binExpr `sepBy` commaToken
-        rp <- endpToken
-        return $ lp : concat args ++ [rp]
-      else do
         beginpToken
-        args <- binExpr `sepBy` commaToken
+        args <- expression `sepBy` commaToken
         endpToken
 
         liftIO $
@@ -84,6 +78,11 @@ printfSt =
             foldr1 (++) (show <$> args)
 
         return []
+      else do
+        lp <- beginpToken
+        args <- binExpr `sepBy` commaToken
+        rp <- endpToken
+        return $ lp : concat args ++ [rp]
 
 -- Input Statements
 -- getInt() | getFloat | getChar | getString

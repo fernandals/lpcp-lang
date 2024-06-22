@@ -213,7 +213,12 @@ instance Show Token where
     show (And p) = "and"
     show (BeginP p) = "("
     show (EndP p) = ")"
-    show _ = ""
+    show (If p) = "if"
+    show (Elif p) = "elif"
+    show (Else p) = "else"
+    show (BeginB p) = "{"
+    show (EndB p) = "}"
+    show _ = "token"
 
 
 
