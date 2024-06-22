@@ -11,4 +11,4 @@ main = do
   parsed <- parser $ getTokens file
   case parsed of
     Left e -> print e
-    Right ans -> print () -- print ans
+    Right ans -> return ()

@@ -244,5 +244,5 @@ neqToken = tokenPrim show updatePos get_token
     get_token _ = Nothing
 
 updatePos :: SourcePos -> Token -> [Token] -> SourcePos
-updatePos pos _ (tok : _) = pos -- necessita melhoria
+updatePos pos _ (tok : _) = pos
 updatePos pos _ [] = pos
