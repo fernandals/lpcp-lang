@@ -7,6 +7,7 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IntMap (update)
 import Expressions
+import ParserExpressions
 import GHC.IO.FD (stdout)
 import Lexer
 import State
@@ -24,21 +25,23 @@ varDecl = do
   colon <- colonToken
   decltype <- types
   assign <- assignToken
-  expr <- getst <|> expression
 
   (flag, symt, (act_name, _) : stack, types, subp) <- getState
 
   if not flag
-    then
-      return
+    then do
+      expr <- binExpr
+      liftIO $ print expr
+      return $
         [ modifier,
           id,
           colon,
           decltype,
-          assign,
-          expr
-        ]
+          assign ] 
+          ++ expr
+
     else do
+      expr <- getst <|> expression
       let expected_type = typeof decltype
       let actual_type = typeof expr
 
@@ -60,8 +63,9 @@ varDecl = do
           colon,
           decltype,
           assign,
-          expr
-        ]
+          expr ]
+          
+        
 
 assign :: ParsecT [Token] State IO [Token]
 assign = do
