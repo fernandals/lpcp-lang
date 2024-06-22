@@ -194,7 +194,28 @@ instance Eq Token where
 
 instance Show Token where
     show (LiteralValue {..}) = show val
+    show (Id p name) = name
+    show (Plus p) = "+"
+    show (Minus p) = "-"
+    show (Times p) = "*"
+    show (Divides p) = "/"
+    show (Modulos p) = "%"
+    show (Pow p) = "^"
+    show (Eq p) = "=="
+    show (Neq p) = "!="
+    show (Leq p) = "<="
+    show (Geq p) = ">="
+    show (Less p) = "<"
+    show (Greater p) = ">"
+    show (Or p) = "or"
+    show (Xor p) = "xor"
+    show (Not p) = "not"
+    show (And p) = "and"
+    show (BeginP p) = "("
+    show (EndP p) = ")"
     show _ = ""
+
+
 
 -- helpers
 readbool :: String -> Bool

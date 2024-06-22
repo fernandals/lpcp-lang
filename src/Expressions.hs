@@ -41,17 +41,21 @@ evalTermRemaining n1 =
     <|> return n1
 
 notFactor :: ParsecT [Token] State IO Token -- pode dar ruim
-notFactor = try unaBoolExpr <|> factor
+notFactor = try unaBoolExpr <|> factor 
 
-factor :: ParsecT [Token] State IO Token
-factor = try relation <|> try bracket <|> subExpression
+factor  :: ParsecT [Token] State IO Token
+factor  = do
+  n1 <- subExpression 
+  factorRemaining n1
 
-relation :: ParsecT [Token] State IO Token
-relation = do
-  n1 <- try bracket <|> subExpression
-  rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
-  n2 <- try bracket <|> subExpression
-  return $ eval n1 rel n2
+factorRemaining :: Token -> ParsecT [Token] State IO Token
+factorRemaining n1 =
+  ( do
+      rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
+      n2 <-  subExpression
+      factorRemaining $ eval n1 rel n2
+  )
+    <|> return n1
 
 subExpression :: ParsecT [Token] State IO Token
 subExpression = do
@@ -99,7 +103,21 @@ evalSubFactorRemaining n1 =
     <|> return n1
 
 base :: ParsecT [Token] State IO Token
-base = subBracket <|> atomExpression
+base = bracket <|> atomExpression
+
+bracket :: ParsecT [Token] State IO Token
+bracket = do
+  l <- beginpToken
+  expr <- expression
+  r <- endpToken
+  return expr
+
+subBracket :: ParsecT [Token] State IO Token
+subBracket = do
+  l <- beginpToken
+  expr <- subExpression
+  r <- endpToken
+  return expr
 
 atomExpression :: ParsecT [Token] State IO Token
 atomExpression = do
@@ -178,19 +196,7 @@ negValue (LiteralValue p a) =
     I i -> LiteralValue p (I (-i))
     F f -> LiteralValue p (F (-f))
 
-bracket :: ParsecT [Token] State IO Token
-bracket = do
-  l <- beginpToken
-  expr <- expression
-  r <- endpToken
-  return expr
 
-subBracket :: ParsecT [Token] State IO Token
-subBracket = do
-  l <- beginpToken
-  expr <- subExpression
-  r <- endpToken
-  return expr
 
 -- EVAL
 
@@ -264,7 +270,6 @@ eval (LiteralValue p a) (Neq _) (LiteralValue p' b) = LiteralValue p $
     (a, b) -> error $ typeErrorRelation p "(!=)" a b
 eval (LiteralValue p a) (Leq _) (LiteralValue p' b) = LiteralValue p $
   case (a, b) of
-    (B p, B q) -> B $ p <= q
     (I n, I m) -> B $ n <= m
     (F x, F y) -> B $ x <= y
     (C c, C d) -> B $ c <= d
@@ -272,7 +277,6 @@ eval (LiteralValue p a) (Leq _) (LiteralValue p' b) = LiteralValue p $
     (a, b) -> error $ typeErrorRelation p "(<=)" a b
 eval (LiteralValue p a) (Geq _) (LiteralValue p' b) = LiteralValue p $
   case (a, b) of
-    (B p, B q) -> B $ p >= q
     (I n, I m) -> B $ n >= m
     (F x, F y) -> B $ x >= y
     (C c, C d) -> B $ c >= d
@@ -280,7 +284,6 @@ eval (LiteralValue p a) (Geq _) (LiteralValue p' b) = LiteralValue p $
     (a, b) -> error $ typeErrorRelation p "(>=)" a b
 eval (LiteralValue p a) (Less _) (LiteralValue p' b) = LiteralValue p $
   case (a, b) of
-    (B p, B q) -> B $ p < q
     (I n, I m) -> B $ n < m
     (F x, F y) -> B $ x < y
     (C c, C d) -> B $ c < d
@@ -288,7 +291,6 @@ eval (LiteralValue p a) (Less _) (LiteralValue p' b) = LiteralValue p $
     (a, b) -> error $ typeErrorRelation p "(<)" a b
 eval (LiteralValue p a) (Greater _) (LiteralValue p' b) = LiteralValue p $
   case (a, b) of
-    (B p, B q) -> B $ p > q
     (I n, I m) -> B $ n > m
     (F x, F y) -> B $ x > y
     (C c, C d) -> B $ c > d

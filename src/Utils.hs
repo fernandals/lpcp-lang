@@ -49,6 +49,14 @@ typeErrorUnary pos op_name t =
     ++ typeof' t
     ++ ".\n"
 
+unexpectedOperatorError :: Pos -> Token -> String
+unexpectedOperatorError pos t =
+  "Unexpeted "
+    ++ show t
+    ++ "on position "
+    ++ show pos
+    ++ ".\n"
+
 typeof' :: Type -> String
 typeof' (I _) = "int"
 typeof' (F _) = "float"
