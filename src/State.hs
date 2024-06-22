@@ -89,6 +89,9 @@ pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
         subp
       )
 
+popStack :: State -> State
+popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, subp)
+
 -- SYMBOL TABLE operations
 
 symTableInsert :: String -> SymbolEntry -> State -> State
@@ -146,3 +149,22 @@ symTableFindVal name (sym@(name', (_, _, val) : entries) : symt) =
   if name == name'
     then Just val
     else symTableFindVal name symt
+
+symTableCleanScope :: String -> State -> State
+symTableCleanScope scope_name (flag, symt, stack, types, subp) =
+  ( flag,
+    delByScope symt,
+    stack,
+    types,
+    subp
+  )
+  where
+    delByScope = filter (not . inScope scope_name . getName)
+    getName (name, _) = name
+
+-- delByScope :: String -> SymTable -> SymTable
+-- delByScope _ [] = []
+-- delByScope scope_name (sym@(name, entries) : symt) =
+--   if inScope scope_name name
+--     then delByScope scope_name symt
+--     else sym : delByScope scope_name symt

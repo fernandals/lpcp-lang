@@ -10,6 +10,7 @@ import Declarations
 import Errors
 import Expressions
 import ExpressionsParser
+import FluxControl
 import GHC.IO.FD (stdout)
 import Lexer
 import State
@@ -44,16 +45,6 @@ mainProgram = do
   updateState $ setFlag True
   updateState $ pushStack scope_name
 
-  block <- blockParser scope_name
+  block <- blockParser
 
   return $ main : block
-
-blockParser :: String -> ParsecT [Token] State IO [Token]
-blockParser name = do
-  beginBToken
-
-  lines <- many (many1 decls <|> many1 statements)
-
-  endBToken
-
-  return $ (concat . concat) lines
