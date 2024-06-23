@@ -1,0 +1,10 @@
+module teste
+
+let a : int = getInt()
+
+fun main() {
+    let x : int = 10 * a
+    let y : bool = x > a or x == a
+
+    printf(a, " ", x, " ", y)
+}

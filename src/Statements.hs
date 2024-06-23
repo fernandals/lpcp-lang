@@ -30,9 +30,9 @@ assignSt = do
   (flag, symt, (act_name, _) : stack, types, subp) <- getState
   if canExecute flag act_name
     then do
-      expr <- getSt <|> expression
-      updateState $ symTableUpdate (scopeNameVar act_name (name id)) expr
-      return []
+      (v, expr) <- getSt <|> expression
+      updateState $ symTableUpdate (scopeNameVar act_name (name id)) v
+      return $ id : assign : expr
     else do
       expr <- getStSyntactic <|> binExpr
       return $ id : assign : expr
@@ -46,12 +46,12 @@ printSt =
     if canExecute flag act_name
       then do
         beginpToken
-        expr <- expression
+        (v, expr) <- expression
         liftIO
           $ case comm of
             (Print _) -> putStr . show
             (PrintLn _) -> print
-          $ expr
+          $ v
         liftIO $ hFlush stdout
         endpToken
         return []
@@ -75,7 +75,7 @@ printfSt =
 
         liftIO $
           putStrLn $
-            foldr1 (++) (show <$> args)
+            foldr1 (++) (show . fst <$> args)
 
         return []
       else do
@@ -86,18 +86,20 @@ printfSt =
 
 -- Input Statements
 -- getInt() | getFloat | getChar | getString
-getSt :: ParsecT [Token] State IO Token
-getSt =
-  do
-    comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
-    beginpToken >> endpToken
+getSt :: ParsecT [Token] State IO (Token, [Token])
+getSt = do
+  comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
+  bp <- beginpToken
+  ep <- endpToken
 
-    input <- liftIO getLine
-    pure $ case comm of
-      (GetInt p) -> LiteralValue p (I $ parseInput p input)
-      (GetFloat p) -> LiteralValue p (F $ parseInput p input)
-      (GetChar p) -> LiteralValue p (C $ parseInput p input)
-      (GetString p) -> LiteralValue p (S input)
+  input <- liftIO getLine
+  
+  return $ (, [comm, bp, ep]) $ case comm of
+    (GetInt p) -> LiteralValue p (I $ parseInput p input)
+    (GetFloat p) -> LiteralValue p (F $ parseInput p input)
+    (GetChar p) -> LiteralValue p (C $ parseInput p input)
+    (GetString p) -> LiteralValue p (S input)
+
 
 getStSyntactic :: ParsecT [Token] State IO [Token]
 getStSyntactic = do

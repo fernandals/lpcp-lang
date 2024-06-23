@@ -69,9 +69,9 @@ whileParser = do
 ifSt :: ParsecT [Token] State IO [Token]
 ifSt = do
   if_tk <- ifToken
-  expr <- expression
+  (v, expr) <- expression
 
-  if isTrue expr
+  if isTrue v
     then do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "if"
@@ -91,13 +91,14 @@ ifSt = do
       blockParser
       updateState $ setFlag True
       try elifSt <|> try elseSt
+      return []
 
 elifSt :: ParsecT [Token] State IO [Token]
 elifSt = do
   elif_tk <- elifToken
-  expr <- expression
+  (v, expr) <- expression
 
-  if isTrue expr
+  if isTrue v
     then do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "elif"
@@ -127,13 +128,14 @@ elseSt = do
   updateState popStack
   return []
 
+-- caso v é true, parsear o bloco (como no if)
 whileSt :: ParsecT [Token] State IO [Token]
 whileSt = do
   fixp <- getInput
   while_tk <- whileToken
-  expr <- binExpr
+  (v, expr) <- expression
   do_tk <- doToken
 
   s <- getState
 
-  return []
+  return $ while_tk : expr ++ [do_tk]
