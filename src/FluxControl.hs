@@ -17,14 +17,28 @@ blockParser :: ParsecT [Token] State IO [Token]
 blockParser = do
   begin <- beginBToken
 
-  lines <- many (many1 decls <|> many1 statements <|> many1 ifParser <|> many1 whileParser)
+  line <- decls <|> statements <|> ifParser <|> whileParser
+
+  rem <- remainingBlockParser
 
   end <- endBToken
-  return $ begin : (concat . concat) lines ++ [end]
+
+  return $ begin : line ++ rem ++ [end]
+
+remainingBlockParser :: ParsecT [Token] State IO [Token]
+remainingBlockParser = (do
+  line <- decls <|> statements <|> ifParser <|> whileParser
+
+  rem <- remainingBlockParser
+
+  return $ line ++ rem)
+  <|> return []
+
 
 ifParser :: ParsecT [Token] State IO [Token]
 ifParser = do
   (flag, _, _, _, _) <- getState
+
   if flag
     then do ifSt
     else do
@@ -76,22 +90,23 @@ ifSt = do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "if"
       updateState $ pushStack scope_name
-      blockParser
+      block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
 
       updateState $ setFlag False
-      many elifParser
-      try elseParser
+      elif_st <- many elifParser
+      else_st <- try elseParser
       updateState $ setFlag True
 
-      return []
+      return $ if_tk : expr ++ block ++ concat elif_st ++ else_st
     else do
       updateState $ setFlag False
-      blockParser
+      block <- blockParser
       updateState $ setFlag True
-      try elifSt <|> try elseSt
-      return []
+      next_st <- try elifSt <|> try elseSt
+      
+      return $ if_tk : expr ++ block ++ next_st
 
 elifSt :: ParsecT [Token] State IO [Token]
 elifSt = do
@@ -103,19 +118,23 @@ elifSt = do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "elif"
       updateState $ pushStack scope_name
-      blockParser
+      block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
+      
       updateState $ setFlag False
-      many elifParser
-      try elseParser
+      elif_st <- many elifParser
+      --else_st <- try elseParser
       updateState $ setFlag True
-      return []
+      
+      return $ elif_tk : expr ++ block ++ concat elif_st -- ++ else_st
     else do
       updateState $ setFlag False
-      blockParser
+      block <- blockParser
       updateState $ setFlag True
-      try elifSt <|> try elseSt
+      next_st <- try elifSt -- <|> try elseSt
+
+      return $ elif_tk : expr ++ block ++ next_st
 
 elseSt :: ParsecT [Token] State IO [Token]
 elseSt = do
@@ -123,10 +142,10 @@ elseSt = do
   (_, _, (act_name, _) : _, _, _) <- getState
   let scope_name = scopeNameBlock act_name "else"
   updateState $ pushStack scope_name
-  blockParser
+  block <- blockParser
   updateState $ symTableCleanScope scope_name
   updateState popStack
-  return []
+  return $ else_tk : block
 
 -- caso v é true, parsear o bloco (como no if)
 whileSt :: ParsecT [Token] State IO [Token]
@@ -135,7 +154,7 @@ whileSt = do
   while_tk <- whileToken
   (v, expr) <- expression
   do_tk <- doToken
-
+  
   s <- getState
 
   return $ while_tk : expr ++ [do_tk]

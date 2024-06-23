@@ -1,10 +1,23 @@
 module teste
 
-let a : int = getInt()
-
 fun main() {
-    let x : int = 10 * a
-    let y : bool = x > a or x == a
+    let x : int = getInt()
 
-    printf(a, " ", x, " ", y)
+    if x > 0 {
+        println("Maior!")
+
+        if x > 0 {
+            println("oh")
+        } elif x == 0 {
+            println("ah")
+        } 
+    } elif x == 0 {
+        println("Igual.")
+    } else {
+        println("Menor...")
+    } else {
+        println("oi")
+    }
+
+
 }

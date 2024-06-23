@@ -45,7 +45,7 @@ printSt =
     (flag, _, (act_name, _) : _, _, _) <- getState
     if canExecute flag act_name
       then do
-        beginpToken
+        lp <- beginpToken
         (v, expr) <- expression
         liftIO
           $ case comm of
@@ -53,13 +53,13 @@ printSt =
             (PrintLn _) -> print
           $ v
         liftIO $ hFlush stdout
-        endpToken
-        return []
+        rp <- endpToken
+        return $ comm : lp : expr ++ [rp]
       else do
         lp <- beginpToken
         expr <- binExpr
         rp <- endpToken
-        return $ lp : expr ++ [rp]
+        return $ comm : lp : expr ++ [rp]
 
 printfSt :: ParsecT [Token] State IO [Token]
 printfSt =
@@ -69,32 +69,32 @@ printfSt =
     (flag, _, (act_name, _) : _, _, _) <- getState
     if canExecute flag act_name
       then do
-        beginpToken
+        lp <- beginpToken
         args <- expression `sepBy` commaToken
-        endpToken
+        rp <- endpToken
 
         liftIO $
           putStrLn $
             foldr1 (++) (show . fst <$> args)
 
-        return []
+        return $ comm : lp : concatMap snd args ++ [rp]
       else do
         lp <- beginpToken
         args <- binExpr `sepBy` commaToken
         rp <- endpToken
-        return $ lp : concat args ++ [rp]
+        return $ comm : lp : concat args ++ [rp]
 
 -- Input Statements
 -- getInt() | getFloat | getChar | getString
 getSt :: ParsecT [Token] State IO (Token, [Token])
 getSt = do
   comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
-  bp <- beginpToken
-  ep <- endpToken
+  lp <- beginpToken
+  rp <- endpToken
 
   input <- liftIO getLine
   
-  return $ (, [comm, bp, ep]) $ case comm of
+  return $ (, [comm, lp, rp]) $ case comm of
     (GetInt p) -> LiteralValue p (I $ parseInput p input)
     (GetFloat p) -> LiteralValue p (F $ parseInput p input)
     (GetChar p) -> LiteralValue p (C $ parseInput p input)
