@@ -17,7 +17,7 @@ blockParser :: ParsecT [Token] State IO [Token]
 blockParser = do
   begin <- beginBToken
 
-  lines <- many (many1 decls <|> many1 statements <|> many1 ifParser)
+  lines <- many (many1 decls <|> many1 statements <|> many1 ifParser <|> many1 whileParser)
 
   end <- endBToken
   return $ begin : (concat . concat) lines ++ [end]
@@ -52,6 +52,20 @@ elseParser = do
 
   return $ else_tk : block
 
+whileParser :: ParsecT [Token] State IO [Token]
+whileParser = do
+  (flag, _, _, _, _) <- getState
+  if flag
+    then do whileSt
+    else do
+      while_tk <- whileToken
+      expr <- binExpr
+      do_tk <- doToken
+      block <- blockParser
+
+      return $ while_tk : expr ++ do_tk : block
+
+-- Semantics
 ifSt :: ParsecT [Token] State IO [Token]
 ifSt = do
   if_tk <- ifToken
@@ -111,4 +125,15 @@ elseSt = do
   blockParser
   updateState $ symTableCleanScope scope_name
   updateState popStack
+  return []
+
+whileSt :: ParsecT [Token] State IO [Token]
+whileSt = do
+  fixp <- getInput
+  while_tk <- whileToken
+  expr <- binExpr
+  do_tk <- doToken
+
+  s <- getState
+
   return []

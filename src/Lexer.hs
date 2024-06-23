@@ -28202,6 +28202,9 @@ instance Show Token where
     show (Else p) = "else"
     show (BeginB p) = "{"
     show (EndB p) = "}"
+    show (While p) = "while"
+    show (Break p) = "break"
+    show (Do p) = "do"
     show _ = "token"
 
 
