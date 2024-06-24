@@ -10,14 +10,10 @@ fun main() {
             println("oh")
         } elif x == 0 {
             println("ah")
-        } 
+        }
     } elif x == 0 {
         println("Igual.")
     } else {
         println("Menor...")
-    } else {
-        println("oi")
     }
-
-
 }

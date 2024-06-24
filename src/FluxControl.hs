@@ -17,23 +17,11 @@ blockParser :: ParsecT [Token] State IO [Token]
 blockParser = do
   begin <- beginBToken
 
-  line <- decls <|> statements <|> ifParser <|> whileParser
-
-  rem <- remainingBlockParser
+  lines <- many (decls <|> statements <|> ifParser <|> whileParser)
 
   end <- endBToken
 
-  return $ begin : line ++ rem ++ [end]
-
-remainingBlockParser :: ParsecT [Token] State IO [Token]
-remainingBlockParser = (do
-  line <- decls <|> statements <|> ifParser <|> whileParser
-
-  rem <- remainingBlockParser
-
-  return $ line ++ rem)
-  <|> return []
-
+  return $ begin : concat lines ++ [end]
 
 ifParser :: ParsecT [Token] State IO [Token]
 ifParser = do
@@ -47,9 +35,9 @@ ifParser = do
       block <- blockParser
 
       elif_st <- many elifParser
-      else_st <- many elseParser
+      else_st <- option [] elseParser
 
-      return $ if_tk : expr ++ block ++ concat elif_st ++ concat else_st
+      return $ if_tk : expr ++ block ++ concat elif_st ++ else_st
 
 elifParser :: ParsecT [Token] State IO [Token]
 elifParser = do
@@ -96,7 +84,8 @@ ifSt = do
 
       updateState $ setFlag False
       elif_st <- many elifParser
-      else_st <- try elseParser
+      else_st <- option [] elseParser
+
       updateState $ setFlag True
 
       return $ if_tk : expr ++ block ++ concat elif_st ++ else_st
@@ -104,7 +93,7 @@ ifSt = do
       updateState $ setFlag False
       block <- blockParser
       updateState $ setFlag True
-      next_st <- try elifSt <|> try elseSt
+      next_st <- try elifSt <|> option [] elseSt
       
       return $ if_tk : expr ++ block ++ next_st
 
@@ -124,15 +113,15 @@ elifSt = do
       
       updateState $ setFlag False
       elif_st <- many elifParser
-      --else_st <- try elseParser
+      else_st <- option [] elseParser
       updateState $ setFlag True
       
-      return $ elif_tk : expr ++ block ++ concat elif_st -- ++ else_st
+      return $ elif_tk : expr ++ block ++ concat elif_st ++ else_st
     else do
       updateState $ setFlag False
       block <- blockParser
       updateState $ setFlag True
-      next_st <- try elifSt -- <|> try elseSt
+      next_st <- try elifSt <|> option [] elseSt
 
       return $ elif_tk : expr ++ block ++ next_st
 
