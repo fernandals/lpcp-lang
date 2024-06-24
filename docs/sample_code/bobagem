@@ -1,0 +1,12 @@
+  value <- indexs l_p val index
+  return $ (fst value, list_name : snd value)
+
+indexs :: Token -> (Int,Int) -> ParsecT [Token] State IO (Token, [Token])
+indexs val l_p = do
+  sbl <- beginSBToken
+  (index, expr) <- expression
+  sbr <- endSBToken
+
+case val of 
+    (LiteralValue p (L t len l)) -> indexs (indexing val l_p index) l_p 
+    _ -> error $ "O valor nao eh do tipo lista"

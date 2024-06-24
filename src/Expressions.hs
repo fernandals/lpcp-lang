@@ -132,15 +132,32 @@ listIndex = do
   let l_name = name list_name
   let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
 
-  return $ case index of
-    LiteralValue p (I i) -> (indexing val l_p i, list_name : sbl : expr ++ [sbr])
+  ids <- many many_indexs
+
+  return $ case index of  
+    LiteralValue p (I i) -> (eval_ids val (index: map fst ids), sbl : expr ++ concatMap snd ids ++ [sbr])
     _ -> error $ nonIntegerIndex l_p
-  where
-    indexing (LiteralValue p (L t len l)) l_p i =
+
+eval_ids :: Token -> [Token] -> Token
+eval_ids val [] = val
+eval_ids val (x:xs) = case x of  
+    LiteralValue p (I i) -> eval_ids (indexing val p i) xs
+    x -> error $ nonIntegerIndex (pos x)
+
+many_indexs :: ParsecT [Token] State IO (Token, [Token])
+many_indexs = do
+  sbl <- beginSBToken
+  (index, expr) <- expression
+  sbr <- endSBToken
+  return $ (index, sbl : expr ++ [sbr])
+
+indexing :: Token -> (Int,Int) -> Int -> Token
+indexing (LiteralValue p (L t len l)) l_p i =
       if i < len
         then LiteralValue p $ l !! i
         else error $ outOfBounds l_p len
-    indexing x l_p _ = error $ indexInNonList l_p x
+indexing x l_p _ = error $ indexInNonList l_p x
+
 
 list :: ParsecT [Token] State IO (Token, [Token])
 list = do
