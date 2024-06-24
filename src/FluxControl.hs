@@ -94,7 +94,7 @@ ifSt = do
       block <- blockParser
       updateState $ setFlag True
       next_st <- try elifSt <|> option [] elseSt
-      
+
       return $ if_tk : expr ++ block ++ next_st
 
 elifSt :: ParsecT [Token] State IO [Token]
@@ -110,12 +110,12 @@ elifSt = do
       block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
-      
+
       updateState $ setFlag False
       elif_st <- many elifParser
       else_st <- option [] elseParser
       updateState $ setFlag True
-      
+
       return $ elif_tk : expr ++ block ++ concat elif_st ++ else_st
     else do
       updateState $ setFlag False
@@ -143,7 +143,19 @@ whileSt = do
   while_tk <- whileToken
   (v, expr) <- expression
   do_tk <- doToken
-  
-  s <- getState
 
-  return $ while_tk : expr ++ [do_tk]
+  (_, _, (act_name, _) : _, _, _) <- getState
+  if isTrue v
+    then do
+      let scope_name = scopeNameBlock act_name "while"
+      updateState $ pushStack scope_name
+      block <- blockParser
+      updateState $ symTableCleanScope scope_name
+      updateState popStack
+      setInput fixp
+      return $ while_tk : expr ++ do_tk : block
+    else do
+      updateState $ setFlag False
+      block <- blockParser
+      updateState $ setFlag True
+      return $ while_tk : expr ++ do_tk : block
