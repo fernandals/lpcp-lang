@@ -17,6 +17,7 @@ typeof' (F _) = "float"
 typeof' (B _) = "bool"
 typeof' (C _) = "char"
 typeof' (S _) = "string"
+typeof' (L t i _) = "list of " ++ (typeof t)
 
 typeof :: Token -> String
 typeof (LiteralValue p v) = typeof' v
@@ -25,6 +26,7 @@ typeof (Float {..}) = "float"
 typeof (Bool {..}) = "bool"
 typeof (Char {..}) = "char"
 typeof (String {..}) = "string"
+typeof (List {..}) = "list of " ++ (typeof typeList)
 typeof (E {..}) = "error"
 typeof _ = ""
 

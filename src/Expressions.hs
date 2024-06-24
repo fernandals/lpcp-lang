@@ -2,6 +2,8 @@
 
 module Expressions where
 
+import Control.Monad (when)
+import Control.Monad.IO.Class (liftIO)
 import Builtin
 import Errors
 import ExpressionsEvaluation
@@ -10,6 +12,7 @@ import State
 import Text.Parsec hiding (State)
 import Tokens
 import Utils
+
 
 expression :: ParsecT [Token] State IO Token
 expression = term >>= expressionRemaining
@@ -101,7 +104,7 @@ bracketExpression = do
 
 atomExpression :: ParsecT [Token] State IO Token
 atomExpression = do
-  n <- literalValueToken <|> idToken <|> convToFloat <|> convAbs
+  n <- literalValueToken <|> idToken <|> list <|> convToFloat <|> convAbs
   evalVar n
 
 -- Functions
@@ -166,3 +169,46 @@ unaArithExpr = do
     LiteralValue p (I i) -> return $ LiteralValue p (I (-i))
     LiteralValue p (F f) -> return $ LiteralValue p (F (-f))
     Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
+
+
+-- list expressions
+
+list :: ParsecT [Token] State IO Token
+list = do
+  l <- beginSBToken
+  elements <- expression `sepBy` commaToken
+  _ <- endSBToken
+  listType <- tokensToTypes elements
+  return $ LiteralValue (pos l) (L (typeOfList listType (pos l)) 1 listType)
+
+tokensToTypes :: [Token] -> ParsecT [Token] State IO [Type]
+tokensToTypes [] = return []
+tokensToTypes (x:xs) = do
+  t <- tokenToType x
+  ts <- tokensToTypes xs
+  return (t:ts)
+
+tokenToType :: Token -> ParsecT [Token] State IO Type
+tokenToType x = do
+  case x of
+    LiteralValue p (I i) -> return $ I i
+    LiteralValue p (F f) -> return $ F f
+    LiteralValue p (C c) -> return $ C c
+    LiteralValue p (S s) -> return $ S s
+    LiteralValue p (L t i l) -> return $ L t i l
+
+typeOfList :: [Type] -> (Int,Int) -> Token
+typeOfList [] _ = error $ "lista vazia ainda nao tratei"
+typeOfList [x] p = typeOfx x p
+typeOfList (x:y:xs) p = if (typeof' x) == (typeof' y)
+  then typeOfList (y:xs) p
+  else error $ "tipos heterogeneos"
+
+typeOfx :: Type -> (Int,Int) -> Token
+typeOfx x p = 
+  case x of
+    (I i) -> Int p
+    (F f) -> Float p
+    (C c) -> Char p
+    (S s) -> String p
+    (L t i _) -> List p t

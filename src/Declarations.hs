@@ -19,7 +19,14 @@ decls = do
 
 -- Types involved in declarations
 types :: ParsecT [Token] State IO Token
-types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken <|> listType
+
+listType :: ParsecT [Token] State IO Token
+listType = do
+  l <- beginSBToken
+  t <- types
+  r <- endSBToken
+  return (List (pos l) t)
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
@@ -28,7 +35,8 @@ varDecl = do
   colon <- colonToken
   decltype <- types
   assign <- assignToken
-
+  liftIO $ print (typeof decltype)
+  
   (flag, _, (act_name, _) : _, _, _) <- getState
 
   if canExecute flag act_name
