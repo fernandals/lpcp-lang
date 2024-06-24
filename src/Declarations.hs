@@ -21,6 +21,27 @@ decls = do
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
+paramDecl :: ParsecT [Token] State IO (Token, Token)
+paramDecl = do
+  param_name <- idToken
+  colonToken
+  param_type <- types
+  return (param_name, param_type)
+
+returnDecl :: ParsecT [Token] State IO [Token]
+returnDecl = do
+  arrow <- arrowToken
+  return_type <- types
+  return [arrow, return_type]
+
+funDecl :: ParsecT [Token] State IO [Token]
+funDecl = do
+  fun_tk <- funToken
+  fun_name <- idToken
+  lp <- beginpToken
+  params <- many paramDecl
+  arr <- option [] returnDecl
+
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken

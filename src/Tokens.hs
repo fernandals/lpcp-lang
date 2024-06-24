@@ -29,6 +29,12 @@ funToken = tokenPrim show updatePos get_token
     get_token (Fun pos) = Just $ Fun pos
     get_token _ = Nothing
 
+arrowToken :: ParsecT [Token] st IO Token
+arrowToken = tokenPrim show updatePos get_token
+  where
+    get_token (Arrow pos) = Just $ Arrow pos
+    get_token _ = Nothing
+
 assignToken :: ParsecT [Token] st IO Token
 assignToken = tokenPrim show updatePos get_token
   where

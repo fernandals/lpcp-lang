@@ -28108,6 +28108,7 @@ data Token
     | Mut {pos :: Pos}
     | Let {pos :: Pos}
     | Fun {pos :: Pos}
+    | Arrow {pos :: Pos}
     | If {pos :: Pos}
     | Then {pos :: Pos}
     | Else {pos :: Pos}
@@ -28205,6 +28206,8 @@ instance Show Token where
     show (While p) = "while"
     show (Break p) = "break"
     show (Do p) = "do"
+    show (Fun p) = "fun"
+    show (Arrow p) = "->"
     show _ = "token"
 
 

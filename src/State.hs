@@ -29,7 +29,7 @@ type TypeEntry = String
 
 type TypeTable = [TypeEntry]
 
-type SubpEntry = String
+type SubpEntry = (String, [(String, Token)], Token, [Token])
 
 type SubpTable = [SubpEntry]
 
