@@ -2,6 +2,8 @@
 
 module Expressions where
 
+import Control.Monad (when)
+import Control.Monad.IO.Class (liftIO)
 import Builtin
 import Errors
 import ExpressionsEvaluation
@@ -111,10 +113,37 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- literalExpression <|> idExpression <|> list <|> convToFloat <|> convAbs
+  n <- literalExpression <|> listIndex <|> idExpression <|> list <|> convToFloat <|> convAbs
   evalVar n
 
 -- list expressions
+
+listIndex :: ParsecT [Token] State IO (Token, [Token])
+listIndex = do
+  list_name <- idToken
+  sbl <- beginSBToken
+  idExp <- expression
+  sbr <- endSBToken
+  liftIO $ print idExp
+  liftIO $ print sbr
+
+  (flag, symt, (act_name, i) : stack, types, subp) <- getState
+
+  val <- return $ symTableGetVal 
+    (scopeNameVar act_name (name list_name)) 
+    (pos list_name) 
+    (flag, symt, (act_name, i) : stack, types, subp)
+
+  case fst idExp of
+    LiteralValue  n (I i) -> case val of
+      LiteralValue  n  (L t len l) -> 
+        if (i < length l)
+          then return $ 
+            ((LiteralValue  n  (l !! i)), list_name : sbl : snd idExp ++ [sbr])
+          else error $ "indice fora da lista"
+      _ -> error $ (show (pos list_name)) ++  " is not a list"
+    _ -> error $ "indice is not a int"
+
 
 list :: ParsecT [Token] State IO (Token, [Token])
 list = do
@@ -122,7 +151,7 @@ list = do
   elements <- expression `sepBy` commaToken
   r <- endSBToken
   listType <- tokensToTypes elements
-  return $ (LiteralValue (pos l) (L (typeOfList listType (pos l)) 1 listType), l : concatMap snd elements ++ [r])
+  return $ (LiteralValue (pos l) (L (typeOfList listType (pos l)) (length elements) listType), l : concatMap snd elements ++ [r])
 
 tokensToTypes :: [(Token, [Token])] -> ParsecT [Token] State IO [Type]
 tokensToTypes [] = return []

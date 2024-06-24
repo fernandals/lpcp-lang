@@ -137,7 +137,7 @@ symTableFindUpdate name val (sym@(name', (mod, t, val') : entries) : symt) =
           ++ ".\n"
 
 symTableGetVal :: String -> Pos -> State -> Token
-symTableGetVal "" pos _ = error "Nao achei"
+symTableGetVal "" pos _ = error "Nao achei essa variavel"
 symTableGetVal name pos state =
   case symTableFindVal name (getSymTable state) of
     Nothing -> symTableGetVal (parentScopeVar name) pos state

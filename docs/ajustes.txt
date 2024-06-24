@@ -1,0 +1,11 @@
+(flag, symt, (act_name, i) : stack, types, subp) <- getState
+
+  val <- return $ symTableGetVal 
+    (scopeNameVar act_name (name list_name)) 
+    (pos list_name) 
+    (flag, symt, (act_name, i) : stack, types, subp)
+
+  case val of
+    LiteralValue  n  (L t i l) -> 
+      return $ ((LiteralValue  n  (l !!  0)), list_name : sbl : snd idExp ++ [sbr]);
+    _ -> error $ (show (pos list_name)) ++  " is not a list"
