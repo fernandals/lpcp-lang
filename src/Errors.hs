@@ -25,7 +25,7 @@ typeErrorMsg pos expected_type actual_type =
 
 typeErrorExprMsg :: Pos -> String -> Type -> Type -> String
 typeErrorExprMsg pos op_name t t' =
-  "Type mismatch at evaluation of expression in "
+  "Type mismatch at evaluation of expression at "
     ++ show pos
     ++ ".\nCant't apply "
     ++ op_name
@@ -37,7 +37,7 @@ typeErrorExprMsg pos op_name t t' =
 
 typeErrorRelation :: Pos -> String -> Type -> Type -> String
 typeErrorRelation pos rel_name t t' =
-  "Type mismatch at evaluation of expression in "
+  "Type mismatch at evaluation of expression at "
     ++ show pos
     ++ ".\nCant't compare "
     ++ typeof' t
@@ -49,7 +49,7 @@ typeErrorRelation pos rel_name t t' =
 
 typeErrorUnary :: Pos -> String -> Type -> String
 typeErrorUnary pos op_name t =
-  "Type mismatch at evaluation of expression in "
+  "Type mismatch at evaluation of expression at "
     ++ show pos
     ++ ".\nCan't apply "
     ++ op_name
@@ -59,8 +59,41 @@ typeErrorUnary pos op_name t =
 
 unexpectedOperatorError :: Pos -> Token -> String
 unexpectedOperatorError pos t =
-  "Unexpeted "
+  "Unexpected "
     ++ show t
-    ++ "on position "
+    ++ "at position "
     ++ show pos
+    ++ ".\n"
+
+nonIntegerIndex :: Pos -> String
+nonIntegerIndex p =
+  "Non integer index at "
+    ++ show p
+    ++ ".\n"
+
+outOfBounds :: Pos -> Int -> String
+outOfBounds p len =
+  "Index out of bounds at "
+    ++ show p
+    ++ ".\nSize of list is "
+    ++ show len
+    ++ ".\n"
+
+indexInNonList :: Pos -> Token -> String
+indexInNonList p t =
+  "Illegal indexing at "
+    ++ show p
+    ++ ".\nAn "
+    ++ typeof t
+    ++ " isn't subscriptable.\n"
+
+nonHomogeneousList :: Pos -> Type -> Type -> String
+nonHomogeneousList p t t' =
+  "Non homogeneous list at "
+    ++ show p
+    ++ ".\n"
+    ++ "Expected "
+    ++ typeof' t
+    ++ ", got "
+    ++ typeof' t'
     ++ ".\n"

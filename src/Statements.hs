@@ -8,6 +8,7 @@ import Builtin
 -- Haskell Imports
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Data.List (intersperse)
 import Expressions
 import ExpressionsParser
 import Lexer
@@ -77,12 +78,12 @@ printfSt =
           putStrLn $
             foldr1 (++) (show . fst <$> args)
 
-        return $ comm : lp : concatMap snd args ++ [rp]
+        return $ comm : lp : intersperse (Comma (0, 0)) (concatMap snd args ++ [rp])
       else do
         lp <- beginpToken
         args <- binExpr `sepBy` commaToken
         rp <- endpToken
-        return $ comm : lp : concat args ++ [rp]
+        return $ comm : lp : intersperse (Comma (0, 0)) (concat args ++ [rp])
 
 -- Input Statements
 -- getInt() | getFloat | getChar | getString
@@ -93,13 +94,12 @@ getSt = do
   rp <- endpToken
 
   input <- liftIO getLine
-  
-  return $ (, [comm, lp, rp]) $ case comm of
+
+  return $ (,[comm, lp, rp]) $ case comm of
     (GetInt p) -> LiteralValue p (I $ parseInput p input)
     (GetFloat p) -> LiteralValue p (F $ parseInput p input)
     (GetChar p) -> LiteralValue p (C $ parseInput p input)
     (GetString p) -> LiteralValue p (S input)
-
 
 getStSyntactic :: ParsecT [Token] State IO [Token]
 getStSyntactic = do

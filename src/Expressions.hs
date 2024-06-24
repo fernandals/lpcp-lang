@@ -2,9 +2,10 @@
 
 module Expressions where
 
+import Builtin
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Builtin
+import Data.List (intersperse)
 import Errors
 import ExpressionsEvaluation
 import Lexer
@@ -113,7 +114,7 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- literalExpression <|> listIndex <|> idExpression <|> list <|> convToFloat <|> convAbs
+  n <- literalExpression <|> try listIndex <|> idExpression <|> list <|> convToFloat <|> convAbs
   evalVar n
 
 -- list expressions
@@ -122,43 +123,46 @@ listIndex :: ParsecT [Token] State IO (Token, [Token])
 listIndex = do
   list_name <- idToken
   sbl <- beginSBToken
-  idExp <- expression
+  (index, expr) <- expression
   sbr <- endSBToken
-  liftIO $ print idExp
-  liftIO $ print sbr
 
-  (flag, symt, (act_name, i) : stack, types, subp) <- getState
+  state@(_, _, (act_name, i) : _, _, _) <- getState
 
-  val <- return $ symTableGetVal 
-    (scopeNameVar act_name (name list_name)) 
-    (pos list_name) 
-    (flag, symt, (act_name, i) : stack, types, subp)
+  let l_p = pos list_name
+  let l_name = name list_name
+  let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
 
-  case fst idExp of
-    LiteralValue  n (I i) -> case val of
-      LiteralValue  n  (L t len l) -> 
-        if (i < length l)
-          then return $ 
-            ((LiteralValue  n  (l !! i)), list_name : sbl : snd idExp ++ [sbr])
-          else error $ "indice fora da lista"
-      _ -> error $ (show (pos list_name)) ++  " is not a list"
-    _ -> error $ "indice is not a int"
-
+  return $ case index of
+    LiteralValue p (I i) -> (indexing val l_p i, list_name : sbl : expr ++ [sbr])
+    _ -> error $ nonIntegerIndex l_p
+  where
+    indexing (LiteralValue p (L t len l)) l_p i =
+      if i < len
+        then LiteralValue p $ l !! i
+        else error $ outOfBounds l_p len
+    indexing x l_p _ = error $ indexInNonList l_p x
 
 list :: ParsecT [Token] State IO (Token, [Token])
 list = do
   l <- beginSBToken
   elements <- expression `sepBy` commaToken
   r <- endSBToken
-  listType <- tokensToTypes elements
-  return $ (LiteralValue (pos l) (L (typeOfList listType (pos l)) (length elements) listType), l : concatMap snd elements ++ [r])
+
+  lis <- tokensToTypes elements
+
+  let l_p = pos l
+      l_type = tokenTypeOfList lis l_p
+      l_len = length elements
+      comma = Comma (0, 0)
+      tokens = intersperse comma $ concatMap snd elements ++ [r]
+   in return (LiteralValue l_p (L l_type l_len lis), tokens)
 
 tokensToTypes :: [(Token, [Token])] -> ParsecT [Token] State IO [Type]
 tokensToTypes [] = return []
-tokensToTypes (x:xs) = do
+tokensToTypes (x : xs) = do
   t <- tokenToType x
   ts <- tokensToTypes xs
-  return (t:ts)
+  return (t : ts)
 
 tokenToType :: (Token, [Token]) -> ParsecT [Token] State IO Type
 tokenToType x = do
@@ -169,21 +173,13 @@ tokenToType x = do
     LiteralValue p (S s) -> return $ S s
     LiteralValue p (L t i l) -> return $ L t i l
 
-typeOfList :: [Type] -> (Int,Int) -> Token
-typeOfList [] _ = error $ "lista vazia ainda nao tratei"
-typeOfList [x] p = typeOfx x p
-typeOfList (x:y:xs) p = if (typeof' x) == (typeof' y)
-  then typeOfList (y:xs) p
-  else error $ "tipos heterogeneos"
-
-typeOfx :: Type -> (Int,Int) -> Token
-typeOfx x p = 
-  case x of
-    (I i) -> Int p
-    (F f) -> Float p
-    (C c) -> Char p
-    (S s) -> String p
-    (L t i _) -> List p t
+tokenTypeOfList :: [Type] -> Pos -> Token
+tokenTypeOfList [] _ = error "lista vazia ainda nao tratei"
+tokenTypeOfList [x] p = typeAsToken x p
+tokenTypeOfList (x : y : xs) p =
+  if typeof' x == typeof' y
+    then tokenTypeOfList (y : xs) p
+    else error $ nonHomogeneousList p x y
 
 -- Functions
 
