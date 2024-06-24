@@ -111,8 +111,50 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- literalExpression <|> idExpression <|> convToFloat <|> convAbs
+  n <- literalExpression <|> idExpression <|> list <|> convToFloat <|> convAbs
   evalVar n
+
+-- list expressions
+
+list :: ParsecT [Token] State IO (Token, [Token])
+list = do
+  l <- beginSBToken
+  elements <- expression `sepBy` commaToken
+  r <- endSBToken
+  listType <- tokensToTypes elements
+  return $ (LiteralValue (pos l) (L (typeOfList listType (pos l)) 1 listType), l : concatMap snd elements ++ [r])
+
+tokensToTypes :: [(Token, [Token])] -> ParsecT [Token] State IO [Type]
+tokensToTypes [] = return []
+tokensToTypes (x:xs) = do
+  t <- tokenToType x
+  ts <- tokensToTypes xs
+  return (t:ts)
+
+tokenToType :: (Token, [Token]) -> ParsecT [Token] State IO Type
+tokenToType x = do
+  case fst x of
+    LiteralValue p (I i) -> return $ I i
+    LiteralValue p (F f) -> return $ F f
+    LiteralValue p (C c) -> return $ C c
+    LiteralValue p (S s) -> return $ S s
+    LiteralValue p (L t i l) -> return $ L t i l
+
+typeOfList :: [Type] -> (Int,Int) -> Token
+typeOfList [] _ = error $ "lista vazia ainda nao tratei"
+typeOfList [x] p = typeOfx x p
+typeOfList (x:y:xs) p = if (typeof' x) == (typeof' y)
+  then typeOfList (y:xs) p
+  else error $ "tipos heterogeneos"
+
+typeOfx :: Type -> (Int,Int) -> Token
+typeOfx x p = 
+  case x of
+    (I i) -> Int p
+    (F f) -> Float p
+    (C c) -> Char p
+    (S s) -> String p
+    (L t i _) -> List p t
 
 -- Functions
 

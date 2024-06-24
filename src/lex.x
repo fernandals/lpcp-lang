@@ -100,7 +100,7 @@ tokens :-
   -- Id
   $alpha [$alpha $digit \_ \']*           { \p s -> Id (getLC p) s }
 {
-
+    
 type Pos = (Int, Int)
 
 data Type
@@ -109,6 +109,7 @@ data Type
     | B Bool
     | C Char
     | S String
+    | L Token Int [Type]
     deriving ( Eq )
 
 instance Show Type where
@@ -117,6 +118,7 @@ instance Show Type where
     show (B b) = show b
     show (C c) = show c
     show (S s) = s
+    show (L t i l) = show l
 
 data Token
     = Module {pos :: Pos}
@@ -141,6 +143,7 @@ data Token
     | String {pos :: Pos}
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
+    | List {pos :: Pos, typeList :: Token}
     -- Literals
     | LiteralValue {pos :: Pos, val :: Type}
     -- Operators
