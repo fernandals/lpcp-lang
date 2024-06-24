@@ -114,7 +114,7 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- literalExpression <|> try listIndex <|> idExpression <|> list <|> convToFloat <|> convAbs
+  n <- literalExpression <|> try listIndex <|> idExpression <|> list <|> convToFloat <|> convAbs <|> lengthIter
   evalVar n
 
 -- list expressions
@@ -230,6 +230,20 @@ convAbs = do
     to_abs p (I i) = I (abs i)
     to_abs p (F f) = F (abs f)
     to_abs p t = error $ typeErrorUnary p "(abs)" t
+
+lengthIter :: ParsecT [Token] State IO (Token, [Token])
+lengthIter = do
+  fun <- lengthFun
+  pl <- beginpToken
+  (v, expr) <- expression
+  pr <- endpToken
+  case v of
+    LiteralValue p (L t len l) -> return (LiteralValue p (I len), fun : pl : expr ++ [pr])
+    LiteralValue p (S s) -> return (LiteralValue p (I (length s)), fun : pl : expr ++ [pr])
+    _ -> error $ "Type mismatch at " ++ (show (pos pl)) ++ "."
+
+-- AUX 
+
 
 negValue :: (Token, [Token]) -> (Token, [Token])
 negValue (LiteralValue p a, expr) =

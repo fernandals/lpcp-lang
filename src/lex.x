@@ -43,6 +43,9 @@ tokens :-
   "toFloat"                               { \p s -> ToFloat $ getLC p}
   "toStr"                                 { \p s -> ToStr $ getLC p}
   "abs"                                   { \p s -> Abs $ getLC p}
+  "length"                                { \p s -> Length $ getLC p}
+  ":>"                                    {\p s -> Prepend $ getLC p}
+  "<:"                                    {\p s -> Append $ getLC p}
 
   -- Types
   "float"                                 { \p s -> Float $ getLC p }
@@ -169,6 +172,9 @@ data Token
     | GetFloat {pos :: Pos}
     | GetChar {pos :: Pos}
     | GetString {pos :: Pos}
+    | Length {pos :: Pos}
+    | Prepend {pos :: Pos}
+    | Append {pos :: Pos}
     -- Relations
     | Geq {pos :: Pos}
     | Leq {pos :: Pos}
