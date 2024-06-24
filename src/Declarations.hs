@@ -33,17 +33,17 @@ varDecl = do
 
   if canExecute flag act_name
     then do
-      expr <- getSt <|> expression
+      (v, expr) <- getSt <|> expression
       let expected_type = typeof decltype
-      let actual_type = typeof expr
+      let actual_type = typeof v
 
       when (expected_type /= actual_type) $
         error $
-          typeErrorMsg (pos id) decltype expr
+          typeErrorMsg (pos id) decltype v
 
-      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, expr)
+      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, v)
 
-      return []
+      return $ modifier : id : colon : decltype : assign : expr
     else do
       expr <- getStSyntactic <|> binExpr
       return $

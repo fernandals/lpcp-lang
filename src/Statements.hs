@@ -30,9 +30,9 @@ assignSt = do
   (flag, symt, (act_name, _) : stack, types, subp) <- getState
   if canExecute flag act_name
     then do
-      expr <- getSt <|> expression
-      updateState $ symTableUpdate (scopeNameVar act_name (name id)) expr
-      return []
+      (v, expr) <- getSt <|> expression
+      updateState $ symTableUpdate (scopeNameVar act_name (name id)) v
+      return $ id : assign : expr
     else do
       expr <- getStSyntactic <|> binExpr
       return $ id : assign : expr
@@ -45,21 +45,21 @@ printSt =
     (flag, _, (act_name, _) : _, _, _) <- getState
     if canExecute flag act_name
       then do
-        beginpToken
-        expr <- expression
+        lp <- beginpToken
+        (v, expr) <- expression
         liftIO
           $ case comm of
             (Print _) -> putStr . show
             (PrintLn _) -> print
-          $ expr
+          $ v
         liftIO $ hFlush stdout
-        endpToken
-        return []
+        rp <- endpToken
+        return $ comm : lp : expr ++ [rp]
       else do
         lp <- beginpToken
         expr <- binExpr
         rp <- endpToken
-        return $ lp : expr ++ [rp]
+        return $ comm : lp : expr ++ [rp]
 
 printfSt :: ParsecT [Token] State IO [Token]
 printfSt =
@@ -69,35 +69,37 @@ printfSt =
     (flag, _, (act_name, _) : _, _, _) <- getState
     if canExecute flag act_name
       then do
-        beginpToken
+        lp <- beginpToken
         args <- expression `sepBy` commaToken
-        endpToken
+        rp <- endpToken
 
         liftIO $
           putStrLn $
-            foldr1 (++) (show <$> args)
+            foldr1 (++) (show . fst <$> args)
 
-        return []
+        return $ comm : lp : concatMap snd args ++ [rp]
       else do
         lp <- beginpToken
         args <- binExpr `sepBy` commaToken
         rp <- endpToken
-        return $ lp : concat args ++ [rp]
+        return $ comm : lp : concat args ++ [rp]
 
 -- Input Statements
 -- getInt() | getFloat | getChar | getString
-getSt :: ParsecT [Token] State IO Token
-getSt =
-  do
-    comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
-    beginpToken >> endpToken
+getSt :: ParsecT [Token] State IO (Token, [Token])
+getSt = do
+  comm <- getIntFun <|> getFloatFun <|> getCharFun <|> getStringFun
+  lp <- beginpToken
+  rp <- endpToken
 
-    input <- liftIO getLine
-    pure $ case comm of
-      (GetInt p) -> LiteralValue p (I $ parseInput p input)
-      (GetFloat p) -> LiteralValue p (F $ parseInput p input)
-      (GetChar p) -> LiteralValue p (C $ parseInput p input)
-      (GetString p) -> LiteralValue p (S input)
+  input <- liftIO getLine
+  
+  return $ (, [comm, lp, rp]) $ case comm of
+    (GetInt p) -> LiteralValue p (I $ parseInput p input)
+    (GetFloat p) -> LiteralValue p (F $ parseInput p input)
+    (GetChar p) -> LiteralValue p (C $ parseInput p input)
+    (GetString p) -> LiteralValue p (S input)
+
 
 getStSyntactic :: ParsecT [Token] State IO [Token]
 getStSyntactic = do

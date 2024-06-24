@@ -11,10 +11,10 @@ import Text.Parsec hiding (State)
 import Tokens
 import Utils
 
-expression :: ParsecT [Token] State IO Token
+expression :: ParsecT [Token] State IO (Token, [Token])
 expression = term >>= expressionRemaining
 
-expressionRemaining :: Token -> ParsecT [Token] State IO Token
+expressionRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 expressionRemaining n1 =
   ( do
       op <- orToken <|> xorToken
@@ -23,10 +23,10 @@ expressionRemaining n1 =
   )
     <|> return n1
 
-term :: ParsecT [Token] State IO Token
+term :: ParsecT [Token] State IO (Token, [Token])
 term = notFactor >>= termRemaining
 
-termRemaining :: Token -> ParsecT [Token] State IO Token
+termRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 termRemaining n1 =
   ( do
       op <- andToken
@@ -35,13 +35,13 @@ termRemaining n1 =
   )
     <|> return n1
 
-notFactor :: ParsecT [Token] State IO Token
+notFactor :: ParsecT [Token] State IO (Token, [Token])
 notFactor = try unaBoolExpr <|> factor
 
-factor :: ParsecT [Token] State IO Token
+factor :: ParsecT [Token] State IO (Token, [Token])
 factor = subExpression >>= factorRemaining
 
-factorRemaining :: Token -> ParsecT [Token] State IO Token
+factorRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 factorRemaining n1 =
   ( do
       rel <- leqToken <|> geqToken <|> lessToken <|> greaterToken <|> eqToken <|> neqToken
@@ -50,10 +50,10 @@ factorRemaining n1 =
   )
     <|> return n1
 
-subExpression :: ParsecT [Token] State IO Token
+subExpression :: ParsecT [Token] State IO (Token, [Token])
 subExpression = subTerm >>= evalSubExpressionRemaining
 
-evalSubExpressionRemaining :: Token -> ParsecT [Token] State IO Token
+evalSubExpressionRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 evalSubExpressionRemaining n1 =
   ( do
       op <- plusToken <|> minusToken
@@ -62,10 +62,10 @@ evalSubExpressionRemaining n1 =
   )
     <|> return n1
 
-subTerm :: ParsecT [Token] State IO Token
+subTerm :: ParsecT [Token] State IO (Token, [Token])
 subTerm = negSubFactor >>= evalSubTermRemaining
 
-evalSubTermRemaining :: Token -> ParsecT [Token] State IO Token
+evalSubTermRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 evalSubTermRemaining n1 =
   ( do
       op <- timesToken <|> dividesToken <|> modulosToken
@@ -74,13 +74,13 @@ evalSubTermRemaining n1 =
   )
     <|> return n1
 
-negSubFactor :: ParsecT [Token] State IO Token -- pode dar ruim
+negSubFactor :: ParsecT [Token] State IO (Token, [Token]) -- pode dar ruim
 negSubFactor = try unaArithExpr <|> subFactor
 
-subFactor :: ParsecT [Token] State IO Token
+subFactor :: ParsecT [Token] State IO (Token, [Token])
 subFactor = base >>= evalSubFactorRemaining
 
-evalSubFactorRemaining :: Token -> ParsecT [Token] State IO Token
+evalSubFactorRemaining :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 evalSubFactorRemaining n1 =
   ( do
       op <- powToken
@@ -89,62 +89,72 @@ evalSubFactorRemaining n1 =
   )
     <|> return n1
 
-base :: ParsecT [Token] State IO Token
+base :: ParsecT [Token] State IO (Token, [Token])
 base = bracketExpression <|> atomExpression
 
-bracketExpression :: ParsecT [Token] State IO Token
+bracketExpression :: ParsecT [Token] State IO (Token, [Token])
 bracketExpression = do
   l <- beginpToken
-  expr <- expression
+  (v, expr) <- expression
   r <- endpToken
-  return expr
+  return (v, l : expr ++ [r])
 
-atomExpression :: ParsecT [Token] State IO Token
+literalExpression :: ParsecT [Token] State IO (Token, [Token])
+literalExpression = do
+  n <- literalValueToken
+  return (n, [n])
+
+idExpression :: ParsecT [Token] State IO (Token, [Token])
+idExpression = do
+  n <- idToken
+  return (n, [n])
+
+atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- literalValueToken <|> idToken <|> convToFloat <|> convAbs
+  n <- literalExpression <|> idExpression <|> convToFloat <|> convAbs
   evalVar n
 
 -- Functions
 
-convToFloat :: ParsecT [Token] State IO Token
+convToFloat :: ParsecT [Token] State IO (Token, [Token])
 convToFloat = do
   fun <- toFloatFun
   l <- beginpToken
-  n <- expression
+  (v, expr) <- expression
   r <- endpToken
-  nEvaluated <- evalVar n
+  (nEvaluated, expr) <- evalVar (v, expr)
   case val nEvaluated of
-    (I i) -> return $ LiteralValue (pos n) $ F (fromIntegral i)
-    t -> error $ typeErrorUnary (pos n) "(toFloat)" t
+    (I i) -> return (LiteralValue (pos v) $ F (fromIntegral i), fun : l : expr ++ [r])
+    t -> error $ typeErrorUnary (pos v) "(toFloat)" t
 
-convToStr :: ParsecT [Token] State IO Token
+convToStr :: ParsecT [Token] State IO (Token, [Token])
 convToStr = do
   fun <- toStrFun
   l <- beginpToken
-  n <- expression
+  (v, expr) <- expression
   r <- endpToken
-  return $ LiteralValue (pos n) (S $ show (val n))
+  return (LiteralValue (pos v) (S $ show (val v)), fun : l : expr ++ [r])
 
-convAbs :: ParsecT [Token] State IO Token
+convAbs :: ParsecT [Token] State IO (Token, [Token])
 convAbs = do
   fun <- absFun
   l <- beginpToken
-  n <- expression
+  (v, expr) <- expression
   r <- endpToken
-  return $ LiteralValue (pos n) (to_abs (pos n) $ val n)
+  return (LiteralValue (pos v) (to_abs (pos v) $ val v), fun : l : expr ++ [r])
   where
     to_abs p (I i) = I (abs i)
     to_abs p (F f) = F (abs f)
     to_abs p t = error $ typeErrorUnary p "(abs)" t
 
-negValue :: Token -> Token
-negValue (LiteralValue p a) =
+negValue :: (Token, [Token]) -> (Token, [Token])
+negValue (LiteralValue p a, expr) =
   case a of
-    B b -> LiteralValue p (B $ not b)
-    I i -> LiteralValue p (I (-i))
-    F f -> LiteralValue p (F (-f))
+    B b -> (LiteralValue p (B $ not b), expr)
+    I i -> (LiteralValue p (I (-i)), expr)
+    F f -> (LiteralValue p (F (-f)), expr)
 
-unaBoolExpr :: ParsecT [Token] State IO Token
+unaBoolExpr :: ParsecT [Token] State IO (Token, [Token])
 unaBoolExpr = do
   op <- notToken
   b <- expression
@@ -152,10 +162,10 @@ unaBoolExpr = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
 
   case b of
-    LiteralValue p (B b) -> return $ LiteralValue p (B $ not b)
-    Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
+    (LiteralValue p (B b), expr) -> return (LiteralValue p (B $ not b), op : expr)
+    (Id p i, expr) -> return $ negValue (symTableGetVal (scopeNameVar act_name i) p state, op : expr)
 
-unaArithExpr :: ParsecT [Token] State IO Token
+unaArithExpr :: ParsecT [Token] State IO (Token, [Token])
 unaArithExpr = do
   op <- minusToken
   n1 <- subExpression
@@ -163,6 +173,6 @@ unaArithExpr = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
 
   case n1 of
-    LiteralValue p (I i) -> return $ LiteralValue p (I (-i))
-    LiteralValue p (F f) -> return $ LiteralValue p (F (-f))
-    Id p i -> return $ negValue $ symTableGetVal (scopeNameVar act_name i) p state
+    (LiteralValue p (I i), expr) -> return (LiteralValue p (I (-i)), op : expr)
+    (LiteralValue p (F f), expr) -> return (LiteralValue p (F (-f)), op : expr)
+    (Id p i, expr) -> return $ negValue (symTableGetVal (scopeNameVar act_name i) p state, op : expr)

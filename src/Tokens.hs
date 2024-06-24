@@ -117,6 +117,18 @@ elifToken = tokenPrim show updatePos get_token
     get_token (Elif pos) = Just $ Elif pos
     get_token _ = Nothing
 
+whileToken :: ParsecT [Token] st IO Token
+whileToken = tokenPrim show updatePos get_token
+  where
+    get_token (While pos) = Just $ While pos
+    get_token _ = Nothing
+
+doToken :: ParsecT [Token] st IO Token
+doToken = tokenPrim show updatePos get_token
+  where
+    get_token (Do pos) = Just $ Do pos
+    get_token _ = Nothing
+
 -- Tokens para exp arimimeticas
 
 plusToken :: ParsecT [Token] st IO Token
