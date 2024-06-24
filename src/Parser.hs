@@ -11,6 +11,7 @@ import Errors
 import Expressions
 import ExpressionsParser
 import FluxControl
+import Functions
 import GHC.IO.FD (stdout)
 import Lexer
 import State
@@ -29,7 +30,7 @@ program :: ParsecT [Token] State IO [Token]
 program = do
   p <- moduleToken <?> missingModuleErrorMsg
   pn <- idToken <?> missingModuleErrorMsg
-  d <- many varDecl
+  d <- many (try funDecl <|> varDecl)
   main <- mainProgram <?> missingMainErrorMsg
   eof
   return $ [p, pn] ++ concat d ++ main

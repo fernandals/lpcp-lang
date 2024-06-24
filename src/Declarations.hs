@@ -2,6 +2,7 @@ module Declarations where
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Data.Bifunctor (first)
 import Errors
 import Expressions
 import ExpressionsParser
@@ -10,37 +11,13 @@ import State
 import Statements
 import Text.Parsec hiding (State)
 import Tokens
+import Types
 import Utils
 
 -- Top Level
 decls :: ParsecT [Token] State IO [Token]
 decls = do
   varDecl
-
--- Types involved in declarations
-types :: ParsecT [Token] State IO Token
-types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
-
-paramDecl :: ParsecT [Token] State IO (Token, Token)
-paramDecl = do
-  param_name <- idToken
-  colonToken
-  param_type <- types
-  return (param_name, param_type)
-
-returnDecl :: ParsecT [Token] State IO [Token]
-returnDecl = do
-  arrow <- arrowToken
-  return_type <- types
-  return [arrow, return_type]
-
-funDecl :: ParsecT [Token] State IO [Token]
-funDecl = do
-  fun_tk <- funToken
-  fun_name <- idToken
-  lp <- beginpToken
-  params <- many paramDecl
-  arr <- option [] returnDecl
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do

@@ -88,6 +88,7 @@ tokens :-
   ";"                                     { \p s -> SemiColon $ getLC p }
   \=                                      { \p s -> Assign $ getLC p }
   ","                                     { \p s -> Comma $ getLC p }
+  "->"                                    { \p s -> Arrow $ getLC p }
 
 
   -- Literals
@@ -196,8 +197,12 @@ instance Eq Token where
 instance Show Token where
     show (LiteralValue {..}) = show val
     show (Id p name) = name
+    show (Let p) = "let"
+    show (Mut p) = "mut"
+    show (Module p) = "module"
     show (Plus p) = "+"
     show (Minus p) = "-"
+    show (Comma p) = ","
     show (Times p) = "*"
     show (Divides p) = "/"
     show (Modulos p) = "%"
@@ -219,11 +224,22 @@ instance Show Token where
     show (Else p) = "else"
     show (BeginB p) = "{"
     show (EndB p) = "}"
+    show (BeginSB p) = "["
+    show (EndSB p) = "]"
     show (While p) = "while"
     show (Break p) = "break"
     show (Do p) = "do"
     show (Fun p) = "fun"
     show (Arrow p) = "->"
+    show (Colon p) = ":"
+    show (Int p) = "int"
+    show (Float p) = "float"
+    show (Char p) = "char"
+    show (String p) = "string"
+    show (Bool p) = "bool"
+    show (PrintLn p) = "println"
+    show (Main p) = "main"
+    show (Assign p) = "="
     show _ = "token"
 
 

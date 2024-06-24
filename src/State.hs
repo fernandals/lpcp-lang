@@ -29,7 +29,7 @@ type TypeEntry = String
 
 type TypeTable = [TypeEntry]
 
-type SubpEntry = (String, [(String, Token)], Token, [Token])
+type SubpEntry = (String, [(String, Token)], Maybe Token, [Token])
 
 type SubpTable = [SubpEntry]
 
@@ -161,6 +161,15 @@ symTableCleanScope scope_name (flag, symt, stack, types, subp) =
   where
     delByScope = filter (not . inScope scope_name . getName)
     getName (name, _) = name
+
+pushSubprogram :: SubpEntry -> State -> State
+pushSubprogram entry (flag, symt, stack, types, subp) =
+  ( flag,
+    symt,
+    stack,
+    types,
+    entry : subp
+  )
 
 -- delByScope :: String -> SymTable -> SymTable
 -- delByScope _ [] = []
