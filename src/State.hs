@@ -92,6 +92,17 @@ pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
 popStack :: State -> State
 popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, subp)
 
+-- TYPE operations
+
+typeInsert :: TypeEntry -> State -> State
+typeInsert name state =
+  case getTypes state of 
+    [] -> setTypes [name] state
+    typ@(x : xs) -> 
+      if name == x
+        then error "This record already exists and can't be redeclared.\n"
+        else setTypes (name : typ) state
+  
 -- SYMBOL TABLE operations
 
 symTableInsert :: String -> SymbolEntry -> State -> State

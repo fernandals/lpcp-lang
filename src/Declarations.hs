@@ -58,11 +58,15 @@ varDecl = do
 recordDecls :: ParsecT [Token] State IO [Token]
 recordDecls = do
     record <- recordToken
-    name <- idToken
+    id <- idToken
     begin <- beginBToken
     fields <- fieldDecls
     end <- endBToken
-    return $ [record, name, begin] ++ fields ++ [end]
+
+    state <- getState
+
+    updateState $ typeInsert (name id)
+    return $ [record, id, begin] ++ fields ++ [end]
 
 fieldDecls :: ParsecT [Token] State IO [Token]
 fieldDecls = do
