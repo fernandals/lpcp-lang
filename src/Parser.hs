@@ -29,10 +29,11 @@ program :: ParsecT [Token] State IO [Token]
 program = do
   p <- moduleToken <?> missingModuleErrorMsg
   pn <- idToken <?> missingModuleErrorMsg
+  r <- many recordDecls
   d <- many varDecl
   main <- mainProgram <?> missingMainErrorMsg
   eof
-  return $ [p, pn] ++ concat d ++ main
+  return $ [p, pn] ++ concat r ++ concat d ++ main
 
 mainProgram :: ParsecT [Token] State IO [Token]
 mainProgram = do

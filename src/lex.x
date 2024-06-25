@@ -30,6 +30,7 @@ tokens :-
   "return"                                { \p s -> Return $ getLC p }
   "continue"                              { \p s -> Continue $ getLC p }
   "break"                                 { \p s -> Break $ getLC p }
+  "record"                                { \p s -> Record $ getLC p }
 
   -- Built-in
   "main"                                  { \p s -> Main $ getLC p }
@@ -88,6 +89,7 @@ tokens :-
   ";"                                     { \p s -> SemiColon $ getLC p }
   \=                                      { \p s -> Assign $ getLC p }
   ","                                     { \p s -> Comma $ getLC p }
+  "=>"                                    { \p s -> Arrow $ getLC p }
 
 
   -- Literals
@@ -135,6 +137,7 @@ data Token
     | Break {pos :: Pos}
     | Continue {pos :: Pos}
     | Return {pos :: Pos}
+    | Record {pos :: Pos}
     -- Types
     | Int {pos :: Pos}
     | Float {pos :: Pos}
@@ -174,6 +177,7 @@ data Token
     | Eq {pos :: Pos}
     | Neq {pos :: Pos}
     -- Names and blocks and such
+    | Arrow {pos :: Pos}
     | Colon {pos :: Pos}
     | SemiColon {pos :: Pos}
     | Comma {pos :: Pos}

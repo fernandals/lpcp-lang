@@ -47,6 +47,18 @@ commaToken = tokenPrim show updatePos get_token
     get_token (Comma pos) = Just $ Comma pos
     get_token _ = Nothing
 
+arrowToken :: ParsecT [Token] st IO Token
+arrowToken = tokenPrim show updatePos get_token
+  where
+    get_token (Arrow pos) = Just $ Arrow pos
+    get_token _ = Nothing
+
+recordToken :: ParsecT [Token] st IO Token
+recordToken = tokenPrim show updatePos get_token
+  where
+    get_token (Record pos) = Just $ Record pos
+    get_token _ = Nothing
+
 -- Tokens para tipos
 
 intToken :: ParsecT [Token] st IO Token

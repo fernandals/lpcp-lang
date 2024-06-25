@@ -54,3 +54,35 @@ varDecl = do
           assign
         ]
           ++ expr
+
+recordDecls :: ParsecT [Token] State IO [Token]
+recordDecls = do
+    record <- recordToken
+    name <- idToken
+    begin <- beginBToken
+    fields <- fieldDecls
+    end <- endBToken
+    return $ [record, name, begin] ++ fields ++ [end]
+
+fieldDecls :: ParsecT [Token] State IO [Token]
+fieldDecls = do
+    field <- fieldDecl
+    fields <- remainingFieldDecls
+    return $ field ++ fields
+
+remainingFieldDecls :: ParsecT [Token] State IO [Token]
+remainingFieldDecls = 
+  ( do
+      comma <- commaToken
+      field <- fieldDecl
+      fields <- remainingFieldDecls
+      return $ [comma] ++ field ++ fields
+  ) 
+  <|> return []
+
+fieldDecl :: ParsecT [Token] State IO [Token]
+fieldDecl = do
+    name <- idToken
+    colon <- colonToken
+    typ <- types
+    return [name, colon, typ]

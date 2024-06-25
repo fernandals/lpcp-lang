@@ -94,11 +94,13 @@ getSt = do
 
   input <- liftIO getLine
   
-  return $ (, [comm, lp, rp]) $ case comm of
-    (GetInt p) -> LiteralValue p (I $ parseInput p input)
-    (GetFloat p) -> LiteralValue p (F $ parseInput p input)
-    (GetChar p) -> LiteralValue p (C $ parseInput p input)
-    (GetString p) -> LiteralValue p (S input)
+  let value = case comm of
+        (GetInt p) -> LiteralValue p (I $ parseInput p input)
+        (GetFloat p) -> LiteralValue p (F $ parseInput p input)
+        (GetChar p) -> LiteralValue p (C $ parseInput p input)
+        (GetString p) -> LiteralValue p (S input)
+
+  return (value, [comm, lp, rp])
 
 
 getStSyntactic :: ParsecT [Token] State IO [Token]
