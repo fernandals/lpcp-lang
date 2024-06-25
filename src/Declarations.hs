@@ -2,7 +2,6 @@ module Declarations where
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Data.Bifunctor (first)
 import Errors
 import Expressions
 import ExpressionsParser

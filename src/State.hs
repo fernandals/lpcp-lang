@@ -67,9 +67,6 @@ getTypes (_, _, _, types, _) = types
 setSubp :: SubpTable -> State -> State
 setSubp subp (flag, symt, stack, types, _) = (flag, symt, stack, types, subp)
 
-getSubp :: State -> SubpTable
-getSubp (_, _, _, _, subp) = subp
-
 -- ACT STACK OPERATIONS
 pushStack :: String -> State -> State
 pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
@@ -168,8 +165,22 @@ pushSubprogram entry (flag, symt, stack, types, subp) =
     symt,
     stack,
     types,
-    entry : subp
+    defineSubp entry subp
   )
+
+defineSubp :: SubpEntry -> SubpTable -> SubpTable
+defineSubp entry [] = [entry]
+defineSubp entry@(fun_name, params, return_type, block) (subp@(fun_name', _, _, _) : table) =
+  if fun_name == fun_name'
+    then error "already defined"
+    else subp : defineSubp entry table
+
+getSubp :: String -> SubpTable -> SubpEntry
+getSubp name [] = error "not found"
+getSubp name (entry@(name', _, _, _) : subp) =
+  if name == name'
+    then entry
+    else getSubp name subp
 
 -- delByScope :: String -> SymTable -> SymTable
 -- delByScope _ [] = []

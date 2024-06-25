@@ -93,13 +93,12 @@ getSt = do
   rp <- endpToken
 
   input <- liftIO getLine
-  
-  return $ (, [comm, lp, rp]) $ case comm of
+
+  return $ (,[comm, lp, rp]) $ case comm of
     (GetInt p) -> LiteralValue p (I $ parseInput p input)
     (GetFloat p) -> LiteralValue p (F $ parseInput p input)
     (GetChar p) -> LiteralValue p (C $ parseInput p input)
     (GetString p) -> LiteralValue p (S input)
-
 
 getStSyntactic :: ParsecT [Token] State IO [Token]
 getStSyntactic = do
