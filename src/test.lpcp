@@ -1,9 +1,9 @@
 module functions
 
-fun test(x : int, y : float) -> int {
-	let a : int = 5
+fun test(x : int) -> int {
+	return x + 5
 }
 
 fun main() {
-	println("i can execute")
+	println(test(5))
 }

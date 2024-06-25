@@ -175,16 +175,31 @@ defineSubp entry@(fun_name, params, return_type, block) (subp@(fun_name', _, _, 
     then error "already defined"
     else subp : defineSubp entry table
 
-getSubp :: String -> SubpTable -> SubpEntry
-getSubp name [] = error "not found"
-getSubp name (entry@(name', _, _, _) : subp) =
-  if name == name'
-    then entry
-    else getSubp name subp
+getSubp :: String -> Pos -> SubpTable -> SubpEntry
+getSubp "" pos _ = error "nao achei o subp"
+getSubp name pos subp = case findSubp name subp of
+  Nothing -> getSubp (parentScopeVar name) pos subp
+  Just sub -> sub
 
--- delByScope :: String -> SymTable -> SymTable
--- delByScope _ [] = []
--- delByScope scope_name (sym@(name, entries) : symt) =
---   if inScope scope_name name
---     then delByScope scope_name symt
---     else sym : delByScope scope_name symt
+findSubp :: String -> SubpTable -> Maybe SubpEntry
+findSubp _ [] = Nothing
+findSubp name (entry@(name', _, _, _) : subp) =
+  if name == name'
+    then Just entry
+    else findSubp name subp
+
+returnSubp :: String -> Maybe Token -> State -> State
+returnSubp f_name return_val (flag, symt, stack, types, subp) =
+  ( flag,
+    symt,
+    stack,
+    types,
+    updateReturnSubp f_name return_val subp
+  )
+
+updateReturnSubp :: String -> Maybe Token -> SubpTable -> SubpTable
+updateReturnSubp _ _ [] = []
+updateReturnSubp f_name return_val (entry@(name, params, return_type, code) : subp) =
+  if f_name == name
+    then (name, params, return_val, code) : subp
+    else entry : updateReturnSubp f_name return_val subp

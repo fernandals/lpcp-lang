@@ -28,6 +28,10 @@ typeof (String {..}) = "string"
 typeof (E {..}) = "error"
 typeof _ = ""
 
+extractToken :: Maybe Token -> Token
+extractToken (Just t) = t
+extractToken Nothing = E (0, 0)
+
 scopeNameBlock :: String -> String -> String
 scopeNameBlock env_parent block_name = env_parent ++ "._" ++ block_name ++ "_"
 
@@ -48,9 +52,9 @@ split (c : cs)
     rest = split cs
 
 destruct :: [String] -> String
-destruct [] = ""
 destruct [x, y] = ""
 destruct (x : y : xs) = intercalate "." (reverse xs) ++ "." ++ x
+destruct _ = ""
 
 parentScopeVar :: String -> String
 parentScopeVar = destruct . reverse . split
