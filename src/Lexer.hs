@@ -28883,6 +28883,7 @@ instance Eq Token where
 
 instance Show Token where
     show (LiteralValue {..}) = show val
+    show (Assign p) = "="
     show (Id p name) = name
     show (Plus p) = "+"
     show (Minus p) = "-"
@@ -28902,6 +28903,8 @@ instance Show Token where
     show (And p) = "and"
     show (BeginP p) = "("
     show (EndP p) = ")"
+    show (BeginSB p) = "["
+    show (EndSB p) = "]"
     show (If p) = "if"
     show (Elif p) = "elif"
     show (Else p) = "else"

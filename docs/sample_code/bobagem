@@ -1,12 +1,58 @@
   value <- indexs l_p val index
   return $ (fst value, list_name : snd value)
 
-indexs :: Token -> (Int,Int) -> ParsecT [Token] State IO (Token, [Token])
-indexs val l_p = do
-  sbl <- beginSBToken
-  (index, expr) <- expression
-  sbr <- endSBToken
+
+
+--se eu fizer isso many  e ficar com a lista de indices
+    caso lista vazia = retorne
+    caso lista tem coisa = 
 
 case val of 
-    (LiteralValue p (L t len l)) -> indexs (indexing val l_p index) l_p 
+    (LiteralValue p (L t len l)) -> (indexs (indexing val l_p index) l_p , )
     _ -> error $ "O valor nao eh do tipo lista"
+
+
+
+
+setMat :: [Token] -> Type -> Type -> Type
+setMat (x:xs) l v = setMat [x] l (setMat xs (valueInd x l) v)
+setMat [(LiteralValue p' (I i))] (L t len l) v = setList i v l
+
+valueInd :: Token -> Type -> Type
+valueInd (LiteralValue p' (I i)) (L t len l) =
+      if i < len
+        then l !! i
+        else error $ "erro lista acabou"
+indexing x l_p _ = error $ "nao eh um indice"
+
+
+
+(getList i (LiteralValue p (L t len (x:xs)))) v) 
+
+
+-- Falecidas 
+canInsert :: Token -> Token -> Type -> Token
+canInsert (LiteralValue p (L t len l))  i v' =
+  if (typeof (tokenTypeOfList l p)) == (typeof' v') 
+    then LiteralValue p (L t len (setList i v' l))
+    else error $ "erro: tipo do valor nao corresponde"
+canInsert _ (LiteralValue p (I i)) _  = error $ "erro: nao eh uma lista"
+canInsert _ _ _  = error $ "erro"
+
+setList :: Token -> Type -> [Type] -> [Type]
+setList (LiteralValue p' (I i)) value l 
+  | i < 0 = l -- erro aqui
+  | i > (length l) = l --erro aqui
+  | otherwise = go i l
+  where
+    go 0 (_:xs) = value : xs
+    go n (x: xs) = x : go (n-1) xs
+    go _ [] = []
+setList _ value l = error $ "erro: tipo do valor nao corresponde"
+
+getList :: Token -> Token -> Token
+getList (LiteralValue p' (I i)) (LiteralValue p (L t len l)) =
+      if i < length l
+        then LiteralValue p $ l !! i
+        else error $ "lista grande"
+getList _ _ = error $ "nao eh um indice inteiro"
