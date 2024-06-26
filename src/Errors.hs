@@ -1,18 +1,24 @@
+-- Functions to deal with recurring errors
+
 module Errors where
 
 import Lexer
 import Utils
 
+-- | Occurs when the module keyword is missing in the code.
 missingModuleErrorMsg :: String
 missingModuleErrorMsg =
   "Your program is missing a module declarations.\n"
     ++ "Please define a `module programName` so your program can run.\n"
 
+-- | Occurs when there is no function with name main.
 missingMainErrorMsg :: String
 missingMainErrorMsg =
   "Can't execute the code. It is missing a `main` function declaration.\n"
     ++ "Please declare a `fun main() { ... }` so your program can actually run.\n"
 
+-- | Shows error for incompatible type operations.
+-- When a token has a different type than expected.
 typeErrorMsg :: Pos -> Token -> Token -> String
 typeErrorMsg pos expected_type actual_type =
   "Type mismatch at "
@@ -23,6 +29,8 @@ typeErrorMsg pos expected_type actual_type =
     ++ typeof actual_type
     ++ ".\n"
 
+-- | Shows error for incompatible type operations.
+-- When an operation receives a token with an incompatible type.
 typeErrorExprMsg :: Pos -> String -> Type -> Type -> String
 typeErrorExprMsg pos op_name t t' =
   "Type mismatch at evaluation of expression in "
@@ -35,6 +43,8 @@ typeErrorExprMsg pos op_name t t' =
     ++ typeof' t'
     ++ ".\n"
 
+-- | Shows error for incompatible type relations.
+-- When tokens cannot be compared due to type mismatch.
 typeErrorRelation :: Pos -> String -> Type -> Type -> String
 typeErrorRelation pos rel_name t t' =
   "Type mismatch at evaluation of expression in "
@@ -47,6 +57,8 @@ typeErrorRelation pos rel_name t t' =
     ++ rel_name
     ++ ".\n"
 
+-- | Shows error for incompatible type relations.
+-- When a relation receives a token with an incompatible type
 typeErrorUnary :: Pos -> String -> Type -> String
 typeErrorUnary pos op_name t =
   "Type mismatch at evaluation of expression in "
@@ -57,6 +69,7 @@ typeErrorUnary pos op_name t =
     ++ typeof' t
     ++ ".\n"
 
+-- | Occurs when encountering an unexpected operator.
 unexpectedOperatorError :: Pos -> Token -> String
 unexpectedOperatorError pos t =
   "Unexpeted "
