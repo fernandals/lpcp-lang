@@ -1,3 +1,5 @@
+-- Parsers for state manipulation
+
 {-# LANGUAGE UnicodeSyntax #-}
 
 module State where
@@ -5,40 +7,73 @@ module State where
 import Lexer
 import Utils
 
--- Wether it should execute or just parse
+-- Execution
+------------
+
+-- The execution flag indicates whether the program should be running or not.
 type ExecutionFlag = Bool
 
--- An entry to a variable in the table contains its DEPTH, MODIFIER, TYPE and VALUE.
--- The symbol table contains a list of its versions, so it can support recursion.
--- The top of the stack of activations contains the most recent version of it, its executing version.
+-- Symbol Table
+---------------
+
+-- An entry of a variable contains its depth, modifier, type, and value.
 type SymbolEntry = (Int, Token, Token, Token)
 
+-- The symbol contains a variable name associated with its entries, so it can support recursion.
 type Symbol = (String, [SymbolEntry])
 
+-- The symbol table is a collection of symbols.
 type SymTable = [Symbol]
 
--- And activation stack entry just contains the name of the function that is executing in the given moment,
--- plus the depth of its activation, i.e. if its a recursive function, it'll call itself many times and this
--- will increase its depth.
--- The activation stack just stacks up subprograms activations.
+-- Activation Stack
+-------------------
+
+-- The activation entry contains the name of the function being executed, plus the depth of its activation.
+-- A recursive function has different types of depth.
 type ActEntry = (String, Int)
 
+-- The activation stack accompanies the dynamic chain.
+-- The top of the activation stack contains the most recent version of a function, its running version.
 type ActStack = [ActEntry]
 
+-- Type Table
+-------------
+
+-- A type entry is the name of the created type.
+-- Needs modification!
 type TypeEntry = String
 
+-- The type table is a list of type entries.
 type TypeTable = [TypeEntry]
 
-type SubpEntry = (String, [(String, Token)], Maybe Token, [Token])
+-- Subprograms Table
+--------------------
 
+-- A subprogram parameter contains its name and associated token.
+type SubpParam = (String, Token)
+
+-- A subprogram may or may not have a return type.
+type SubpReturn = Maybe Token
+
+-- A subprogram entry consists of its name, the parameter list, a return section, and the function body.
+type SubpEntry = (String, [SubpParam], SubpReturn, [Token])
+
+-- The subprogram table is a list of subprogram entries.
 type SubpTable = [SubpEntry]
 
+-- Complete state
+-----------------
+
+-- The state is a tuple containing an execution flag, a symbol table, an activation stack, a type table, and a subprogram table.
 type State = (ExecutionFlag, SymTable, ActStack, TypeTable, SubpTable)
 
+-- | The initial state.
+-- The initial state is basically empty, containing only a global scope activation entry.
 defaultState :: State
 defaultState = (False, [], [("_global_", 0)], [], [])
 
--- GETS & SETS for state entries
+-- GETS & SETS for state elements
+---------------------------------
 
 setFlag :: ExecutionFlag -> State -> State
 setFlag flag (_, symt, stack, types, subp) = (flag, symt, stack, types, subp)
@@ -67,41 +102,11 @@ getTypes (_, _, _, types, _) = types
 setSubp :: SubpTable -> State -> State
 setSubp subp (flag, symt, stack, types, _) = (flag, symt, stack, types, subp)
 
--- ACT STACK operations
+-- Symbol Table Operations
+--------------------------
 
-pushStack :: String -> State -> State
-pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
-  if name == removeBlockNames name'
-    then
-      ( flag,
-        symt,
-        (name, depth + 1) : act : stack,
-        types,
-        subp
-      )
-    else
-      ( flag,
-        symt,
-        (name, 0) : act : stack,
-        types,
-        subp
-      )
-
-
-pushStackBlock :: String -> State -> State
-pushStackBlock name (flag, symt, act@(_, depth) : stack, types, subp) 
-  = ( flag,
-      symt,
-      (name, depth) : act : stack,
-      types,
-      subp
-    )
-
-popStack :: State -> State
-popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, subp)
-
--- SYMBOL TABLE operations
-
+-- | Inserts a new variable in the symbol table
+-- Checks if the variable exists in the current activation.
 symTableInsert :: String -> SymbolEntry -> State -> State
 symTableInsert name entry@(depth, _, _, _) state =
   case getSymTable state of
@@ -181,6 +186,41 @@ removeEmpty [] = []
 removeEmpty (sym@(_, []) : symt) = removeEmpty symt
 removeEmpty (sym@(_, entries) : symt) = sym : removeEmpty symt 
 
+-- Activation Stack Operations
+------------------------------
+
+pushStack :: String -> State -> State
+pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
+  if name == removeBlockNames name'
+    then
+      ( flag,
+        symt,
+        (name, depth + 1) : act : stack,
+        types,
+        subp
+      )
+    else
+      ( flag,
+        symt,
+        (name, 0) : act : stack,
+        types,
+        subp
+      )
+
+pushStackBlock :: String -> State -> State
+pushStackBlock name (flag, symt, act@(_, depth) : stack, types, subp) 
+  = ( flag,
+      symt,
+      (name, depth) : act : stack,
+      types,
+      subp
+    )
+
+popStack :: State -> State
+popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, subp)
+
+-- Subprogram Table Operations
+------------------------------
 
 pushSubprogram :: SubpEntry -> State -> State
 pushSubprogram entry (flag, symt, stack, types, subp) =
