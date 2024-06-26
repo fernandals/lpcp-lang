@@ -9,15 +9,20 @@ import Data.Bifunctor (first)
 import Data.Maybe (isNothing, maybe)
 import Errors
 import ExpressionsEvaluation
-import ExpressionsParser
+--import ExpressionsParser
 import Lexer
 import State
 import System.IO (hFlush, stdout)
 import Text.Parsec hiding (State)
 import Text.Read (get, readMaybe, lift)
 import Tokens
-import Types
+--import Types
 import Utils
+
+-- Types involved in declarations
+types :: ParsecT [Token] State IO Token
+types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+
 
 parser :: [Token] -> IO (Either ParseError [Token])
 parser = runParserT program defaultState "Error"

@@ -1,21 +1,26 @@
+-- Parsers for evaluating expressions.
+
 {-# LANGUAGE TupleSections #-}
 
 module ExpressionsEvaluation where
 
-import Control.Monad.IO.Class (liftIO)
 import Errors
 import Lexer
 import State
-import Text.Parsec hiding (State)
 import Utils
+import Text.Parsec hiding (State)
+import Control.Monad.IO.Class (liftIO)
 
+-- | Parser to evaluate variable
+-- This looks for the expression stored within the variable in the symbol table and evaluates it.
 evalVar :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 evalVar (Id p id, expr) = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
-  --liftIO $ print act_name
   return (symTableGetVal (scopeNameVar act_name id) p state, expr)
 evalVar tk = return tk
 
+-- | Parser to evaluate all basic language expressions.
+-- Checks the type of operands and operators and also shows specific errors.
 eval :: (Token, [Token]) -> Token -> (Token, [Token]) -> (Token, [Token])
 eval (LiteralValue p a, expr) (Plus op_p) (LiteralValue p' b, expr') = (, expr ++ Plus op_p: expr' ) $ 
   LiteralValue p $
