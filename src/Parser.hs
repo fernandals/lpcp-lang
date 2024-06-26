@@ -14,7 +14,7 @@ import Lexer
 import State
 import System.IO (hFlush, stdout)
 import Text.Parsec hiding (State)
-import Text.Read (get, readMaybe)
+import Text.Read (get, readMaybe, lift)
 import Tokens
 import Types
 import Utils
@@ -40,7 +40,7 @@ mainProgram = do
   let scope_name = scopeNameBlock "_global_" "main"
 
   updateState $ setFlag True
-  updateState $ pushStack scope_name
+  updateState $ pushStackBlock scope_name
 
   block <- blockParser
 
@@ -206,7 +206,7 @@ varDecl = do
   decltype <- types
   assign <- assignToken
 
-  (flag, _, (act_name, _) : _, _, _) <- getState
+  (flag, _, (act_name, depth) : _, _, _) <- getState
 
   if canExecute flag act_name
     then do
@@ -218,7 +218,7 @@ varDecl = do
         error $
           typeErrorMsg (pos id) decltype v
 
-      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, v)
+      updateState $ symTableInsert (scopeNameVar act_name (name id)) (depth, modifier, decltype, v)
 
       return $ modifier : id : colon : decltype : assign : expr
     else do
@@ -286,7 +286,7 @@ ifSt = do
     then do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "if"
-      updateState $ pushStack scope_name
+      updateState $ pushStackBlock scope_name
       block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
@@ -315,7 +315,7 @@ elifSt = do
     then do
       (_, _, (act_name, _) : _, _, _) <- getState
       let scope_name = scopeNameBlock act_name "elif"
-      updateState $ pushStack scope_name
+      updateState $ pushStackBlock scope_name
       block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
@@ -339,7 +339,7 @@ elseSt = do
   else_tk <- elseToken
   (_, _, (act_name, _) : _, _, _) <- getState
   let scope_name = scopeNameBlock act_name "else"
-  updateState $ pushStack scope_name
+  updateState $ pushStackBlock scope_name
   block <- blockParser
   updateState $ symTableCleanScope scope_name
   updateState popStack
@@ -357,7 +357,7 @@ whileSt = do
   if isTrue v
     then do
       let scope_name = scopeNameBlock act_name "while"
-      updateState $ pushStack scope_name
+      updateState $ pushStackBlock scope_name
       block <- blockParser
       updateState $ symTableCleanScope scope_name
       updateState popStack
@@ -373,43 +373,55 @@ funCallSt :: ParsecT [Token] State IO [Token]
 funCallSt = do
   f <- idToken
   lp <- beginpToken 
-  actual_parameters <- expression `sepBy` commaToken
-  rp <- endpToken
-
-  (flag, _, (act_name, depth) : _, _, subp) <- getState
-
-  -- scoped_name actually dinamic scope
-  -- works because when getting the subp we know that
-  -- they can only be created in global scope
-  let scoped_name = scopeNameBlock act_name (name f)
-  let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
   
-  updateState $ pushStack f_name
-
-  if length params /= length actual_parameters
-    then error "faltou parametro"
-    else allocateParam actual_parameters params
-
-  calle <- getInput
-  setInput code
-  block <- blockParser
-  setInput calle
-
   (flag, _, (act_name, depth) : _, _, subp) <- getState
-  let (f_name, params, return_type', code) = getSubp scoped_name (pos f) subp
 
-  -- talvez seja uma boa resumir isso ja q pouco importa o retorno
-  if return_type /= return_type'
-    then do
-      updateState $ returnSubp f_name return_type
-      updateState $ setFlag True
-      updateState $ symTableCleanScope f_name
-      updateState popStack
-      return $ f : lp : concatMap snd actual_parameters ++ [rp]
-    else do
-      updateState $ symTableCleanScope f_name
-      updateState popStack
-      return $ f : lp : concatMap snd actual_parameters ++ [rp]
+  if not flag
+    then do       
+      actual_parameters <- binExpr `sepBy` commaToken
+      rp <- endpToken
+
+      return $ f : lp : concat actual_parameters ++ [rp]
+    else do 
+      actual_parameters <- expression `sepBy` commaToken
+      rp <- endpToken
+
+      -- scoped_name actually dinamic scope
+      -- works because when getting the subp we know that
+      -- they can only be created in global scope
+
+      let scoped_name = functionName (name f)      
+      let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
+      
+      updateState $ pushStack f_name
+
+      -- liftIO $ print f_name
+      -- liftIO $ print $ removeBlockNames act_name
+
+      if length params /= length actual_parameters
+        then error "faltou parametro"
+        else allocateParam actual_parameters params
+
+      calle <- getInput
+      setInput code
+      block <- blockParser
+      setInput calle
+
+      (flag, _, (act_name, depth) : _, _, subp) <- getState
+      let (f_name, params, return_type', code) = getSubp scoped_name (pos f) subp
+
+      -- talvez seja uma boa resumir isso ja q pouco importa o retorno
+      if return_type /= return_type'
+        then do
+          updateState $ returnSubp f_name return_type
+          updateState $ setFlag True
+          updateState $ symTableCleanScope f_name
+          updateState popStack
+          return $ f : lp : concatMap snd actual_parameters ++ [rp]
+        else do
+          updateState $ symTableCleanScope f_name
+          updateState popStack
+          return $ f : lp : concatMap snd actual_parameters ++ [rp]
 
 -- Expressions
 
@@ -454,13 +466,12 @@ binOp = do
     <|> andToken
 
 atom :: ParsecT [Token] State IO [Token]
-atom = do
-  a <-
-    fmap fst (try funCall) -- gets only the value ??
-      <|> idToken
-      <|> literalValueToken
-
-  return [a]
+atom = 
+  try (do
+    fmap snd funCall) <|>
+  (do
+    a <- idToken <|> literalValueToken
+    return [a])
 
 bracktExpr :: ParsecT [Token] State IO [Token]
 bracktExpr = do
@@ -644,7 +655,10 @@ returnSt = do
   ret <- returnToken
 
   (flag, symt, (act_name, depth) : _, _, subp) <- getState
-    
+  
+  --liftIO $ print subp
+  --liftIO $ print act_name
+
   if not flag
     then do
       expr <- binExpr     
@@ -678,45 +692,57 @@ funCall :: ParsecT [Token] State IO (Token, [Token])
 funCall = do
   f <- idToken
   lp <- beginpToken 
-  actual_parameters <- expression `sepBy` commaToken
-  rp <- endpToken
-
+  
   (flag, _, (act_name, depth) : _, _, subp) <- getState
 
-  -- scoped_name actually dinamic scope
-  -- works because when getting the subp we know that
-  -- they can only be created in global scope
-  let scoped_name = scopeNameBlock act_name (name f)
-  let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
-  
-  if isNothing return_type
-    then error "The function called has incompatible return type."
-    else do
-      updateState $ pushStack f_name
+  if not flag
+    then do       
+      actual_parameters <- binExpr `sepBy` commaToken
+      rp <- endpToken
 
-      if length params /= length actual_parameters
-        then error "faltou parametro"
-        else allocateParam actual_parameters params
+      return (Eq (0, 0), f : lp : concat actual_parameters ++ [rp])
+    else do 
+      actual_parameters <- expression `sepBy` commaToken
+      rp <- endpToken
 
-      calle <- getInput
-      setInput code
-      block <- blockParser
-      setInput calle
+      -- scoped_name actually dinamic scope
+      -- works because when getting the subp we know that
+      -- they can only be created in global scope
 
-      (flag, _, (act_name, depth) : _, _, subp) <- getState
-      let (f_name, params, return_type', code) = getSubp scoped_name (pos f) subp
-
-      if return_type /= return_type'
-        then do
-          updateState $ returnSubp f_name return_type
-          updateState $ setFlag True
-          updateState $ symTableCleanScope f_name
-          updateState popStack
-          return (extractToken return_type', f : lp : concatMap snd actual_parameters ++ [rp])
+      let scoped_name = functionName (name f)      
+      let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
+      
+      if isNothing return_type
+        then error "The function called has incompatible return type."
         else do
-          updateState $ symTableCleanScope f_name
-          updateState popStack
-          return (extractToken return_type', f : lp : concatMap snd actual_parameters ++ [rp])
+          updateState $ pushStack f_name
+
+          -- liftIO $ print f_name
+          -- liftIO $ print $ removeBlockNames act_name
+
+          if length params /= length actual_parameters
+            then error "faltou parametro"
+            else allocateParam actual_parameters params
+
+          calle <- getInput
+          setInput code
+          block <- blockParser
+          setInput calle
+
+          (flag, _, (act_name, depth) : _, _, subp) <- getState
+          let (f_name, params, return_type', code) = getSubp scoped_name (pos f) subp
+
+          if return_type /= return_type'
+            then do
+              updateState $ returnSubp f_name return_type
+              updateState $ setFlag True
+              updateState $ symTableCleanScope f_name
+              updateState popStack
+              return (extractToken return_type', f : lp : concatMap snd actual_parameters ++ [rp])
+            else do
+              updateState $ symTableCleanScope f_name
+              updateState popStack
+              return (extractToken return_type', f : lp : concatMap snd actual_parameters ++ [rp])
 
 allocateParam :: [(Token, [Token])] -> [(String, Token)] -> ParsecT [Token] State IO [Token]
 allocateParam [] [] = return []
@@ -729,6 +755,6 @@ allocateParam ((actual_param, expr) : actual_params) ((formal_param, param_type)
   when (expected_type /= actual_type) $
     error "tipo errado"
 
-  updateState $ symTableInsert (scopeNameVar act_name formal_param) (Mut (0, 0), param_type, actual_param)
+  updateState $ symTableInsert (scopeNameVar act_name formal_param) (depth, Mut (0, 0), param_type, actual_param)
 
   allocateParam actual_params formal_params

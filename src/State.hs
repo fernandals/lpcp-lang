@@ -8,10 +8,10 @@ import Utils
 -- Wether it should execute or just parse
 type ExecutionFlag = Bool
 
--- An entry to a variable in the table contains its modifier, type and value.
+-- An entry to a variable in the table contains its DEPTH, MODIFIER, TYPE and VALUE.
 -- The symbol table contains a list of its versions, so it can support recursion.
 -- The top of the stack of activations contains the most recent version of it, its executing version.
-type SymbolEntry = (Token, Token, Token)
+type SymbolEntry = (Int, Token, Token, Token)
 
 type Symbol = (String, [SymbolEntry])
 
@@ -67,10 +67,11 @@ getTypes (_, _, _, types, _) = types
 setSubp :: SubpTable -> State -> State
 setSubp subp (flag, symt, stack, types, _) = (flag, symt, stack, types, subp)
 
--- ACT STACK OPERATIONS
+-- ACT STACK operations
+
 pushStack :: String -> State -> State
 pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
-  if name == name'
+  if name == removeBlockNames name'
     then
       ( flag,
         symt,
@@ -86,18 +87,30 @@ pushStack name (flag, symt, act@(name', depth) : stack, types, subp) =
         subp
       )
 
+
+pushStackBlock :: String -> State -> State
+pushStackBlock name (flag, symt, act@(_, depth) : stack, types, subp) 
+  = ( flag,
+      symt,
+      (name, depth) : act : stack,
+      types,
+      subp
+    )
+
 popStack :: State -> State
 popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, subp)
 
 -- SYMBOL TABLE operations
 
 symTableInsert :: String -> SymbolEntry -> State -> State
-symTableInsert name entry state =
+symTableInsert name entry@(depth, _, _, _) state =
   case getSymTable state of
     [] -> setSymTable [(name, [entry])] state
-    sym@(name', entry') : symt ->
-      if name == name'
-        then error "This variable already exists and can't be redeclared.\n" -- missing recursion depth
+    sym@(name', entry'@(depth', _, _, _) : entries) : symt ->
+      if name == name' -- variable found
+        then if depth == depth' -- they're in the same program act
+          then error "This variable already exists and can't be redeclared.\n"
+          else setSymTable  ((name', entry : entry' : entries) : symt) state
         else setSymTable (sym : getSymTable insert_state) state
       where
         pop_state = setSymTable symt state
@@ -112,13 +125,13 @@ symTableUpdate name val state =
 
 symTableFindUpdate :: String -> Token -> SymTable -> Maybe SymTable
 symTableFindUpdate _ _ [] = Nothing
-symTableFindUpdate name val (sym@(name', (mod, t, val') : entries) : symt) =
+symTableFindUpdate name val (sym@(name', (dep, mod, t, val') : entries) : symt) =
   if name == name'
     then case mod of
       Mut _ ->
         if typeof val /= typeof t
           then typerror
-          else Just $ (name', (mod, t, val) : entries) : symt
+          else Just $ (name', (dep, mod, t, val) : entries) : symt
       Let _ -> error "You can't change an immutable variable.\n"
     else (sym :) <$> symTableFindUpdate name val symt
   where
@@ -142,7 +155,7 @@ symTableGetVal name pos state =
 
 symTableFindVal :: String -> SymTable -> Maybe Token
 symTableFindVal _ [] = Nothing
-symTableFindVal name (sym@(name', (_, _, val) : entries) : symt) =
+symTableFindVal name (sym@(name', (_, _, _, val) : entries) : symt) =
   if name == name'
     then Just val
     else symTableFindVal name symt
@@ -150,14 +163,24 @@ symTableFindVal name (sym@(name', (_, _, val) : entries) : symt) =
 symTableCleanScope :: String -> State -> State
 symTableCleanScope scope_name (flag, symt, stack, types, subp) =
   ( flag,
-    delByScope symt,
+    removeEmpty . delByScope scope_name $ symt,
     stack,
     types,
     subp
   )
-  where
-    delByScope = filter (not . inScope scope_name . getName)
-    getName (name, _) = name
+
+delByScope :: String -> SymTable -> SymTable
+delByScope scope_name [] = []
+delByScope scope_name (sym@(name', (_, _, _, _) : entries) : symt) =
+  if inScope scope_name name'
+    then (name', entries) : symt
+    else sym : delByScope scope_name symt
+         
+removeEmpty :: SymTable -> SymTable
+removeEmpty [] = []
+removeEmpty (sym@(_, []) : symt) = removeEmpty symt
+removeEmpty (sym@(_, entries) : symt) = sym : removeEmpty symt 
+
 
 pushSubprogram :: SubpEntry -> State -> State
 pushSubprogram entry (flag, symt, stack, types, subp) =
@@ -176,9 +199,9 @@ defineSubp entry@(fun_name, params, return_type, block) (subp@(fun_name', _, _, 
     else subp : defineSubp entry table
 
 getSubp :: String -> Pos -> SubpTable -> SubpEntry
-getSubp "" pos _ = error "nao achei o subp"
+getSubp "_global_" pos _ = error "nao achei o subp"
 getSubp name pos subp = case findSubp name subp of
-  Nothing -> getSubp (parentScopeVar name) pos subp
+  Nothing -> getSubp (parentScopeBlock name) pos subp
   Just sub -> sub
 
 findSubp :: String -> SubpTable -> Maybe SubpEntry

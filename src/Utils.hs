@@ -58,3 +58,19 @@ destruct _ = ""
 
 parentScopeVar :: String -> String
 parentScopeVar = destruct . reverse . split
+
+parentScopeBlock :: String -> String
+parentScopeBlock = intercalate "." . init . split
+
+functionName :: String -> String
+functionName f_name = "_global_._" ++ f_name ++ "_"
+
+removeBlockNames :: String -> String
+removeBlockNames = intercalate "." . reverse . removeBlock . reverse . split
+  where 
+    removeBlock (x:xs)
+      | x == "_if_" = removeBlock xs
+      | x == "_elif_" = removeBlock xs
+      | x == "_else_" = removeBlock xs
+      | x == "_while_" = removeBlock xs
+      | otherwise = x:xs
