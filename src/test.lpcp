@@ -1,12 +1,14 @@
 module functions
 
-fun test(x : int) -> int {
-	return x + 5 + x
+fun fatorial(n : int) -> int {
+	if n == 0 then {
+		return 1
+	} else {
+		return n * fatorial(n-1)
+	}
 }
 
 fun main() {
-	let a : int = 10
-	println(test(a))
-
-	test(10)
+	let x : int = 3
+	println(test(x))
 }

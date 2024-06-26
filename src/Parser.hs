@@ -413,6 +413,65 @@ funCallSt = do
 
 -- Expressions
 
+-- Parser
+
+binExpr :: ParsecT [Token] State IO [Token]
+binExpr = do
+  n1 <- atom <|> unaExpr <|> bracktExpr
+  binExprRemaining n1
+
+binExprRemaining :: [Token] -> ParsecT [Token] State IO [Token]
+binExprRemaining n1 =
+  ( do
+      op <- binOp
+      n2 <- binExpr
+      return (n1 ++ [op] ++ n2)
+  )
+    <|> return n1
+
+unaExpr :: ParsecT [Token] State IO [Token]
+unaExpr = do
+  op <- minusToken <|> notToken
+  n1 <- atom
+  return (op : n1)
+
+binOp :: ParsecT [Token] State IO Token
+binOp = do
+  plusToken
+    <|> minusToken
+    <|> timesToken
+    <|> dividesToken
+    <|> modulosToken
+    <|> powToken
+    <|> eqToken
+    <|> neqToken
+    <|> leqToken
+    <|> geqToken
+    <|> greaterToken
+    <|> lessToken
+    <|> orToken
+    <|> xorToken
+    <|> andToken
+
+atom :: ParsecT [Token] State IO [Token]
+atom = do
+  a <-
+    fmap fst (try funCall) -- gets only the value ??
+      <|> idToken
+      <|> literalValueToken
+
+  return [a]
+
+bracktExpr :: ParsecT [Token] State IO [Token]
+bracktExpr = do
+  l <- beginpToken
+  exp <- try binExpr <|> unaExpr
+  r <- endpToken
+  return ([l] ++ exp ++ [r])
+
+
+-- Seila
+
 expression :: ParsecT [Token] State IO (Token, [Token])
 expression = term >>= expressionRemaining
 
