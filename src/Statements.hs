@@ -77,7 +77,7 @@ setList' (LiteralValue p' (I i)) (LiteralValue p (L t len l)) value
       then (tokenToType' value) : xs
       else error $ "Error: Type mismatch at " ++ show (pos value)
     go n (x: xs) = x : go (n-1) xs
-    go _ [] = []
+    go n [] = error $ "Error: Index out of bounds at position " ++ show p'
 setList' y  (LiteralValue p (L t len l)) value = error $ nonIntegerIndex (pos y)
 setList' _ y value  = error $ "Error: Attempt to insert an element non-list object"
 
