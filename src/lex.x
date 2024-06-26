@@ -147,6 +147,7 @@ data Token
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
     | List {pos :: Pos, typeList :: Token}
+    | EmptyList {pos :: Pos}
     -- Literals
     | LiteralValue {pos :: Pos, val :: Type}
     -- Operators

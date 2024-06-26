@@ -27,6 +27,7 @@ typeof (Bool {..}) = "bool"
 typeof (Char {..}) = "char"
 typeof (String {..}) = "string"
 typeof (List {..}) = "[" ++ typeof typeList ++ "]"
+typeof (EmptyList {..}) = "emptyList"
 typeof (E {..}) = "error"
 typeof _ = ""
 

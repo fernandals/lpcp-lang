@@ -191,7 +191,7 @@ tokenToType x = do
     LiteralValue p (L t i l) -> return $ L t i l
 
 tokenTypeOfList :: [Type] -> Pos -> Token
-tokenTypeOfList [] _ = error "lista vazia ainda nao tratei"
+tokenTypeOfList [] p = EmptyList p
 tokenTypeOfList [x] p = typeAsToken x p
 tokenTypeOfList (x : y : xs) p =
   if typeof' x == typeof' y

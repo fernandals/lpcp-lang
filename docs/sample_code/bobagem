@@ -56,3 +56,19 @@ getList (LiteralValue p' (I i)) (LiteralValue p (L t len l)) =
         then LiteralValue p $ l !! i
         else error $ "lista grande"
 getList _ _ = error $ "nao eh um indice inteiro"
+
+
+
+
+-- empty 
+
+compareEmptyType :: String -> String -> Bool
+compareEmptyType str1 str2 = if countBrackets str1 == countBrackets str2
+  then removeBrackets str2 == "emptyList"
+  else error $ "Erro de tipo"
+
+removeBrackets :: String -> String
+removeBrackets = filter (`notElem` "[]")
+
+countBrackets :: String -> Int
+countBrackets = length . filter (`elem` "[]")

@@ -20,9 +20,18 @@ import Tokens
 import Utils
 import Errors
 
+
 -- Top Level
 statements :: ParsecT [Token] State IO [Token]
 statements = try assignIndex <|> assignSt <|> printSt <|> printfSt
+
+isEmpty :: Token -> Bool
+isEmpty (LiteralValue p (L (EmptyList p') i l)) = True 
+isEmpty _ = False
+
+isList  :: Token -> Bool
+isList (List p' t) = True
+isList _ = False
 
 assignIndex :: ParsecT [Token] State IO [Token]
 assignIndex = do
@@ -95,6 +104,8 @@ tokenToType' (LiteralValue p (C c)) =  C c
 tokenToType' (LiteralValue p (S s)) = S s
 tokenToType' (LiteralValue p (L t i l)) = L t i l
 
+
+-----
 assignSt :: ParsecT [Token] State IO [Token]
 assignSt = do
   id <- idToken
