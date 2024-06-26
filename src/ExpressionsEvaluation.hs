@@ -12,6 +12,7 @@ import Utils
 evalVar :: (Token, [Token]) -> ParsecT [Token] State IO (Token, [Token])
 evalVar (Id p id, expr) = do
   state@(_, _, (act_name, _) : stack, _, _) <- getState
+  --liftIO $ print act_name
   return (symTableGetVal (scopeNameVar act_name id) p state, expr)
 evalVar tk = return tk
 

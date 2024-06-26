@@ -190,9 +190,9 @@ data Token
     | Main {pos :: Pos}
     -- Error handling
     | E {pos :: Pos}
-
-instance Eq Token where
-    (Id {name = s}) == (Id {name = s'}) = s == s'
+    deriving Eq
+--instance Eq Token where
+--    (Id {name = s}) == (Id {name = s'}) = s == s'
 
 instance Show Token where
     show (LiteralValue {..}) = show val

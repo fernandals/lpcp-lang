@@ -1,9 +1,12 @@
 module functions
 
 fun test(x : int) -> int {
-	return x + 5
+	return x + 5 + x
 }
 
 fun main() {
-	println(test(5))
+	let a : int = 10
+	println(test(a))
+
+	test(10)
 }
