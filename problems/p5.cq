@@ -1,0 +1,19 @@
+module Problem5
+
+fun mdc(n : int, m : int) -> int {
+    if m % n == 0 {
+        return n
+    } elif n % m == 0 {
+        return m
+    } else {
+        return mdc(n, m%n)
+    }
+}
+
+fun main() {
+    println("Digite dois inteiros:")
+    let x : int = getInt()
+    let y : int = getInt()
+
+    printf("O MDC entre ", x, " e ", y, " é ", mdc(x,y))
+}
