@@ -425,7 +425,7 @@ prependAux :: Token -> Token -> Token
 prependAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
   if (typeof t) == (typeof' x)
     then LiteralValue p (L t (i+1) (x:l))
-    else error $ typeErrorMsg p' (typeAsToken (L t i l) p') (typeAsToken x p')   
+    else error $ typeErrorMsg p' t (typeAsToken x p') 
 prependAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
 prependAux x y = error $ "Error: Invalid prepend stmt at " ++ show (pos x)
 
@@ -437,7 +437,7 @@ appendAux :: Token -> Token -> Token
 appendAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
   if (typeof t) == (typeof' x)
     then LiteralValue p (L t (i+1) (l++[x]))
-    else error $ error $ typeErrorMsg p' (typeAsToken (L t i l) p') (typeAsToken x p')  
+    else error $ error $ typeErrorMsg p' t (typeAsToken x p') 
 appendAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
 appendAux x y = error $ "Error: Invalid append stmt at " ++ show (pos x)
 
