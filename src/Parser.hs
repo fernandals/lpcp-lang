@@ -3,22 +3,19 @@
 module Parser where
 
 import Builtin
-import Lexer
-import State
-import Errors
-import Tokens
-import Utils
-import ExpressionsEvaluation
-
-
 import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bifunctor (first)
 import Data.Maybe (isNothing, maybe)
+import Errors
+import ExpressionsEvaluation
+import Lexer
+import State
 import System.IO (hFlush, stdout)
 import Text.Parsec hiding (State)
-import Text.Read (get, readMaybe, lift)
-
+import Text.Read (get, lift, readMaybe)
+import Tokens
+import Utils
 
 -- Types involved in declarations
 
@@ -29,12 +26,11 @@ referenceType = do
 
   when (isRef t) $ error "AA"
 
-  return Reference (pos amper) t
-  
+  return $ Reference (pos amper) t
   where
-    isRef Reference _ _ = True
+    isRef (Reference _ _) = True
     isRef _ = False
-  
+
 types :: ParsecT [Token] State IO Token
 types = try primTypes <|> compTypes
 
@@ -399,23 +395,23 @@ whileSt = do
 funCallSt :: ParsecT [Token] State IO [Token]
 funCallSt = do
   f <- idToken
-  lp <- beginpToken 
-  
+  lp <- beginpToken
+
   (flag, _, (act_name, depth) : _, _, subp) <- getState
 
   if not flag
-    then do       
+    then do
       actual_parameters <- binExpr `sepBy` commaToken
       rp <- endpToken
 
       return $ f : lp : concat actual_parameters ++ [rp]
-    else do 
+    else do
       actual_parameters <- expression `sepBy` commaToken
       rp <- endpToken
 
-      let scoped_name = functionName (name f)      
+      let scoped_name = functionName (name f)
       let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
-      
+
       updateState $ pushStack f_name
 
       if length params /= length actual_parameters
@@ -483,12 +479,15 @@ binOp = do
     <|> andToken
 
 atom :: ParsecT [Token] State IO [Token]
-atom = 
-  try (do
-    fmap snd funCall) <|>
-  (do
-    a <- idToken <|> literalValueToken
-    return [a])
+atom =
+  try
+    ( do
+        fmap snd funCall
+    )
+    <|> ( do
+            a <- idToken <|> literalValueToken
+            return [a]
+        )
 
 bracktExpr :: ParsecT [Token] State IO [Token]
 bracktExpr = do
@@ -496,7 +495,6 @@ bracktExpr = do
   exp <- try binExpr <|> unaExpr
   r <- endpToken
   return ([l] ++ exp ++ [r])
-
 
 -- Expresions File
 
@@ -674,7 +672,7 @@ returnSt = do
 
   if not flag
     then do
-      expr <- binExpr     
+      expr <- binExpr
       return $ ret : expr
     else do
       (v, expr) <- expression
@@ -700,23 +698,23 @@ returnSt = do
 funCall :: ParsecT [Token] State IO (Token, [Token])
 funCall = do
   f <- idToken
-  lp <- beginpToken 
-  
+  lp <- beginpToken
+
   (flag, _, (act_name, depth) : _, _, subp) <- getState
 
   if not flag
-    then do       
+    then do
       actual_parameters <- binExpr `sepBy` commaToken
       rp <- endpToken
 
       return (Eq (0, 0), f : lp : concat actual_parameters ++ [rp])
-    else do 
+    else do
       actual_parameters <- expression `sepBy` commaToken
       rp <- endpToken
 
-      let scoped_name = functionName (name f)      
+      let scoped_name = functionName (name f)
       let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
-      
+
       if isNothing return_type
         then error "The function called has incompatible return type."
         else do
