@@ -1,14 +1,15 @@
 module functions
 
-fun fatorial(n : int) -> int {
+fun fatorial(n : int, x : int) -> int {
+	println(x)
 	if n == 0 {
 		return 1
 	} else {
-		return n * fatorial(n - 1)
+		return n * fatorial(n - 1, x)
 	}
 }
 
 fun main() {
-	println(fatorial(fatorial(3)))
+	println(fatorial(3, 5))
 	fatorial(1)
 }

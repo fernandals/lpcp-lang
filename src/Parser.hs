@@ -73,6 +73,30 @@ mainProgram = do
 -- Program statements
 ---------------------
 
+exprComma :: ParsecT [Token] State IO (Token, [Token])
+exprComma =
+  try
+    ( do
+        (v, expr) <- expression
+        comma <- commaToken
+
+        return (v, expr ++ [comma])
+    )
+    <|> ( do
+            expression
+        )
+
+exprCommaSt :: ParsecT [Token] State IO [Token]
+exprCommaSt =
+  try
+    ( do
+        expr <- binExpr
+        comma <- commaToken
+
+        return $ expr ++ [comma]
+    )
+    <|> (do binExpr)
+
 statements :: ParsecT [Token] State IO [Token]
 statements = try funCallSt <|> assignSt <|> printSt <|> printfSt
 
@@ -124,7 +148,7 @@ printfSt =
     if canExecute flag act_name
       then do
         lp <- beginpToken
-        args <- expression `sepBy` commaToken
+        args <- many1 exprComma
         rp <- endpToken
 
         liftIO $
@@ -134,7 +158,7 @@ printfSt =
         return $ comm : lp : concatMap snd args ++ [rp]
       else do
         lp <- beginpToken
-        args <- binExpr `sepBy` commaToken
+        args <- many1 exprCommaSt
         rp <- endpToken
         return $ comm : lp : concat args ++ [rp]
 
@@ -401,12 +425,12 @@ funCallSt = do
 
   if not flag
     then do
-      actual_parameters <- binExpr `sepBy` commaToken
+      actual_parameters <- many exprCommaSt
       rp <- endpToken
 
       return $ f : lp : concat actual_parameters ++ [rp]
     else do
-      actual_parameters <- expression `sepBy` commaToken
+      actual_parameters <- many exprComma
       rp <- endpToken
 
       let scoped_name = functionName (name f)
@@ -704,12 +728,12 @@ funCall = do
 
   if not flag
     then do
-      actual_parameters <- binExpr `sepBy` commaToken
+      actual_parameters <- many exprCommaSt
       rp <- endpToken
 
       return (Eq (0, 0), f : lp : concat actual_parameters ++ [rp])
     else do
-      actual_parameters <- expression `sepBy` commaToken
+      actual_parameters <- many exprComma
       rp <- endpToken
 
       let scoped_name = functionName (name f)
