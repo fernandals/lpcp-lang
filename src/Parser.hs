@@ -100,7 +100,7 @@ assignSt = do
       let emp = (isEmpty v') && (isListValue actual_value) 
       let v = if emp then case actual_value of
             LiteralValue p (L t i l) -> changeTypeOfList v' (typeAsToken (L t i l) p)
-            _ -> error $ "Error"
+            x -> error $ "Error: Object at position" ++ show (pos x) ++ " is not a list."
           else v'
 
 
@@ -376,7 +376,7 @@ prependStmt = do
 
 changeTypeOfList :: Token -> Token -> Token
 changeTypeOfList (LiteralValue p (L t i l)) (List p' t') = (LiteralValue p (L t' i l))
-changeTypeOfList _ _ = error $ "aquilo nao eh uma lista"
+changeTypeOfList x _ = error $ "Error: Object at position " ++ show (pos x) ++ " is not a list."
 
 isEmpty :: Token -> Bool
 isEmpty (LiteralValue p (L (EmptyList p') i l)) = True 
@@ -401,9 +401,9 @@ prependAux :: Token -> Token -> Token
 prependAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
   if (typeof t) == (typeof' x)
     then LiteralValue p (L t (i+1) (x:l))
-    else error $ "Error: Type mismatch prepend at " ++ show p' 
+    else error $ typeErrorMsg p' (typeAsToken (L t i l) p') (typeAsToken x p')   
 prependAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
-prependAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+prependAux x y = error $ "Error: Invalid prepend stmt at " ++ show (pos x)
 
 prependMany :: [Token] -> Token -> Token -> Token
 prependMany [] l v = prependAux v l
@@ -413,9 +413,9 @@ appendAux :: Token -> Token -> Token
 appendAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
   if (typeof t) == (typeof' x)
     then LiteralValue p (L t (i+1) (l++[x]))
-    else error $ "Error: Type mismatch append at " ++ show p' ++ show (typeof t) ++ show (typeof' x)
+    else error $ error $ typeErrorMsg p' (typeAsToken (L t i l) p') (typeAsToken x p')  
 appendAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
-appendAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+appendAux x y = error $ "Error: Invalid append stmt at " ++ show (pos x)
 
 appendMany :: [Token] -> Token -> Token -> Token
 appendMany [] l v = appendAux v l
@@ -430,7 +430,7 @@ setMat (i:is) (LiteralValue p (L t len (x:xs))) v
   | otherwise = 
     case x of 
       L t' len ls -> setList' i (LiteralValue p (L t len (x:xs))) (setMat is (getList i (LiteralValue p (L t len (x:xs)))) v)
-      _ -> error $ "Error: Index out of bounds at position " ++ show (pos i)
+      _ -> error $ outOfBounds p len
 
 setList' :: Token -> Token -> Token -> Token
 setList' (LiteralValue p' (I i)) (LiteralValue p (L t len l)) value 
@@ -442,7 +442,7 @@ setList' (LiteralValue p' (I i)) (LiteralValue p (L t len l)) value
       then (tokenToType' value) : xs
       else error $ "Error: Type mismatch at " ++ show (pos value)
     go n (x: xs) = x : go (n-1) xs
-    go n [] = error $ "Error: Index out of bounds at position " ++ show p'
+    go n [] = error $ outOfBounds p' len
 setList' y  (LiteralValue p (L t len l)) value = error $ nonIntegerIndex (pos y)
 setList' _ y value  = error $ "Error: Attempt to insert an element non-list object"
 
@@ -450,8 +450,8 @@ getList :: Token -> Token -> Token
 getList (LiteralValue p' (I i)) (LiteralValue p (L t len l)) =
       if i < length l
         then LiteralValue p $ l !! i
-        else error $ "lista grande"
-getList _ _ = error $ "nao eh um indice inteiro"
+        else error $ outOfBounds p' len
+getList x _ = error $ nonIntegerIndex (pos x)
 
 tokenToType' :: Token -> Type
 tokenToType' (LiteralValue p (I i)) =  I i
