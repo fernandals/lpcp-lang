@@ -89,10 +89,21 @@ assignSt = do
   id <- idToken
   assign <- assignToken
 
-  (flag, symt, (act_name, _) : stack, types, subp) <- getState
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
   if canExecute flag act_name
     then do
-      (v, expr) <- getSt <|> expression
+      (v', expr) <- getSt <|> expression
+
+      let l_name = name id
+      let l_p = pos id
+      let actual_value = symTableGetVal (scopeNameVar act_name l_name) l_p state
+      let emp = (isEmpty v') && (isListValue actual_value) 
+      let v = if emp then case actual_value of
+            LiteralValue p (L t i l) -> changeTypeOfList v' (typeAsToken (L t i l) p)
+            _ -> error $ "Error"
+          else v'
+
+
       updateState $ symTableUpdate (scopeNameVar act_name (name id)) v
       return $ id : assign : expr
     else do
@@ -374,6 +385,10 @@ isEmpty _ = False
 isList  :: Token -> Bool
 isList (List p' t) = True
 isList _ = False
+
+isListValue :: Token -> Bool
+isListValue (LiteralValue p (L t i l)) = True
+isListValue _ = False
 
 typeOfElement :: String -> String
 typeOfElement str = if length str <= 2
