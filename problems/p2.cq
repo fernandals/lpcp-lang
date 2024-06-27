@@ -1,6 +1,7 @@
 module Problem2
 
 fun main() {
+    println("Entre com inteiros em sequência (negativos param o loop): ")
     mut input : int = getInt()
     
     mut i1 : int = 0

@@ -6,7 +6,11 @@ fun mdc(n : int, m : int) -> int {
     } elif n % m == 0 {
         return m
     } else {
-        return mdc(n, m%n)
+    	if m > n {
+            return mdc(n, m%n)
+	} else {
+	   return mdc(m, n%m)
+	}
     }
 }
 

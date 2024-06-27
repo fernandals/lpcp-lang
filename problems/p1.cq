@@ -1,8 +1,8 @@
 module Problem1
 
-let x : float = 2.5
-let y : float = 5.5
-let c : int = 10
+let x : float = 0.0
+let y : float = 0.0
+let c : int = 5
 
 fun main() {
     let expr : float = x^2 - y + toFloat(c)

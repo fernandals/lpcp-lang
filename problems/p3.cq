@@ -11,9 +11,9 @@ fun main () {
   mut cont : int = 1
   mut cont2 : int = 1
 
-  printf("Qual a quantidade de linhas da primeira matriz?")
+  printf("Qual a quantidade de linhas da 1a matriz?")
   let rowsM1 : int = getInt() 
-  printf("Qual a quantidade de colunas da primeira matriz?")
+  printf("Qual a quantidade de colunas da 1a matriz?")
   let colsM1 : int = getInt()
   printf("Qual a quantidade de linhas da segunda matriz?") 
   let rowsM2 : int = getInt() 
@@ -72,7 +72,20 @@ fun main () {
         cont = cont + 1
       }
       
-      printf("Soma: ", soma)
+      mut lin : int = 0
+      mut col : int = 0
+      
+      println("Soma: ")
+      while lin < rowsM1 do {
+        col = 0
+      	while col < colsM1 do {
+		print(soma[lin][col])
+		print(" ")
+		col = col + 1
+	}
+	println("")
+	lin = lin + 1
+      }
       
     } else {
 
