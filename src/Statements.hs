@@ -22,8 +22,15 @@ import Errors
 
 
 -- Top Level
+
+typeOfElement :: String -> String
+typeOfElement str = if length str <= 2
+                         then ""
+                         else tail (init str)
+
+
 statements :: ParsecT [Token] State IO [Token]
-statements = try assignIndex <|> assignSt <|> printSt <|> printfSt
+statements = try assignIndex <|> try prependStmt <|> try appendStmt <|> assignSt <|> printSt <|> printfSt
 
 isEmpty :: Token -> Bool
 isEmpty (LiteralValue p (L (EmptyList p') i l)) = True 
@@ -32,6 +39,90 @@ isEmpty _ = False
 isList  :: Token -> Bool
 isList (List p' t) = True
 isList _ = False
+
+prependStmt :: ParsecT [Token] State IO [Token]
+prependStmt = do 
+  (e, expr) <- expression
+  prepend <- prependFun
+  list_name <- idToken
+  ids <- many many_indexs
+
+  let l_name = name list_name
+  let l_p = pos list_name
+  let type_e = typeof e 
+
+
+  let allIdExprs = concatMap snd ids
+  let listIds = map fst ids
+
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
+
+  if canExecute flag act_name
+    then do
+
+      let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+      let newVal = if listIds == [] then prependAux e val else prependMany listIds val e
+
+      updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
+      return $ expr ++ [prepend] ++ allIdExprs ++ [list_name]
+
+    else
+      return $ expr ++ [prepend] ++ allIdExprs ++ [list_name]
+
+prependAux :: Token -> Token -> Token
+prependAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
+  if (typeof t) == (typeof' x)
+    then LiteralValue p (L t (i+1) (x:l))
+    else error $ "Error: Type mismatch prepend at " ++ show p' 
+prependAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
+prependAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+
+prependMany :: [Token] -> Token -> Token -> Token
+prependMany [] l v = prependAux v l
+prependMany (i:is) l v = setList' i l (prependMany is (getList i l) v)
+
+appendStmt :: ParsecT [Token] State IO [Token]
+appendStmt = do 
+  list_name <- idToken
+  ids <- many many_indexs
+  append <- appendFun
+  (e, expr) <- expression
+
+  let l_name = name list_name
+  let l_p = pos list_name
+  let type_e = typeof e 
+
+  let allIdExprs = concatMap snd ids
+  let listIds = map fst ids
+
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
+
+  if canExecute flag act_name
+    then do
+
+      let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+      let newVal = if listIds == [] then appendAux e val else appendMany listIds val e
+
+      updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
+      return $ expr ++ [append] ++ allIdExprs ++ [list_name]
+
+    else
+      return $ expr ++ [append] ++ allIdExprs ++ [list_name]
+
+appendAux :: Token -> Token -> Token
+appendAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
+  if (typeof t) == (typeof' x)
+    then LiteralValue p (L t (i+1) (l++[x]))
+    else error $ "Error: Type mismatch append at " ++ show p' ++ show (typeof t) ++ show (typeof' x)
+appendAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
+appendAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+
+appendMany :: [Token] -> Token -> Token -> Token
+appendMany [] l v = appendAux v l
+appendMany (i:is) l v = setList' i l (appendMany is (getList i l) v)
+
+-- setList' 0 [[[0,1],[2,3]]] (setList' 1 [[0,1],[2,3]] (appendAux v [2,3])))
+-- (0,1) [[[0,1],[2,3]]]
 
 assignIndex :: ParsecT [Token] State IO [Token]
 assignIndex = do
@@ -105,7 +196,10 @@ tokenToType' (LiteralValue p (S s)) = S s
 tokenToType' (LiteralValue p (L t i l)) = L t i l
 
 
+
+
 -----
+
 assignSt :: ParsecT [Token] State IO [Token]
 assignSt = do
   id <- idToken

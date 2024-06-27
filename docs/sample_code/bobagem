@@ -72,3 +72,24 @@ removeBrackets = filter (`notElem` "[]")
 
 countBrackets :: String -> Int
 countBrackets = length . filter (`elem` "[]")
+
+
+setMat :: [Token] -> Token -> Token -> Token
+setMat (i:is) (LiteralValue p (L t len [])) v = error $ "Error: Attempt to access an index in an empty matrix or list at position " ++ show (pos i)
+setMat (i:is) (LiteralValue p (L t len (x:xs))) v 
+  | null is = setList' i (LiteralValue p (L t len (x:xs))) v
+  | otherwise = 
+    case x of 
+      L t' len ls -> setList' i (LiteralValue p (L t len (x:xs))) (setMat is (getList i (LiteralValue p (L t len (x:xs)))) v)
+      _ -> error $ "Error: Index out of bounds at position " ++ show (pos i)
+
+
+
+appendMany :: [Token] -> Token -> Token -> Token
+appendMany (i:is) (LiteralValue p (L t len [])) v = error $ "Error: Attempt to access an index in an empty matrix or list at position " ++ show (pos i)
+appendMany (i:is) (LiteralValue p (L t len (x:xs))) v 
+  | null is = appendAux v (LiteralValue p (L t len (x:xs)))
+  | otherwise = 
+    case x of 
+      L t' len ls -> setList' i (LiteralValue p (L t len (x:xs))) (appendMany is (getList i (LiteralValue p (L t len (x:xs)))) v)
+      _ -> error $ "Error: Index out of bounds at position " ++ show (pos i)

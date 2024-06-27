@@ -28,6 +28,10 @@ listType = do
   r <- endSBToken
   return (List (pos l) t)
 
+changeTypeOfList :: Token -> Token -> Token
+changeTypeOfList (LiteralValue p (L t i l)) (List p' t') = (LiteralValue p (L t' i l))
+changeTypeOfList _ _ = error $ "aquilo nao eh uma lista"
+
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
   modifier <- letToken <|> mutToken
@@ -42,13 +46,16 @@ varDecl = do
     then do
       (v', expr) <- getSt <|> expression
       let expected_type = typeof decltype
-      let actual_type = if (isEmpty v') && (isList decltype) then typeof decltype else typeof v'
+      let v = v'
+      let emp = (isEmpty v') && (isList decltype) 
+      let actual_type = if emp then typeof decltype else typeof v'
+      let v = if emp then changeTypeOfList v' decltype else v'
 
       when (expected_type /= actual_type) $
         error $
-          typeErrorMsg (pos id) decltype v'
+          typeErrorMsg (pos id) decltype v
 
-      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, v')
+      updateState $ symTableInsert (scopeNameVar act_name (name id)) (modifier, decltype, v)
       return $ modifier : id : colon : decltype : assign : expr
     else do
       expr <- getStSyntactic <|> binExpr
