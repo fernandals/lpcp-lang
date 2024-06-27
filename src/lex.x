@@ -89,6 +89,7 @@ tokens :-
   \=                                      { \p s -> Assign $ getLC p }
   ","                                     { \p s -> Comma $ getLC p }
   "->"                                    { \p s -> Arrow $ getLC p }
+  "&"                                     { \p s -> Amper $ getLC p }
 
 
   -- Literals
@@ -110,6 +111,7 @@ data Type
     | B Bool
     | C Char
     | S String
+    | Rf String Token 
     deriving ( Eq )
 
 instance Show Type where
@@ -143,6 +145,7 @@ data Token
     | String {pos :: Pos}
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
+    | Reference {pos :: Pos, rtype :: Token}
     -- Literals
     | LiteralValue {pos :: Pos, val :: Type}
     -- Operators
@@ -188,6 +191,7 @@ data Token
     | EndSB {pos :: Pos}
     | Id {pos :: Pos, name :: String}
     | Main {pos :: Pos}
+    | Amper {pos :: Pos}
     -- Error handling
     | E {pos :: Pos}
     deriving Eq
@@ -240,6 +244,7 @@ instance Show Token where
     show (PrintLn p) = "println"
     show (Main p) = "main"
     show (Assign p) = "="
+    show (Reference p t) = "&" ++ show t
     show _ = "token"
 
 

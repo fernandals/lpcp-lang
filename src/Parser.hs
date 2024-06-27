@@ -21,8 +21,28 @@ import Text.Read (get, readMaybe, lift)
 
 
 -- Types involved in declarations
+
+referenceType :: ParsecT [Token] State IO Token
+referenceType = do
+  amper <- amperToken
+  t <- types
+
+  when (isRef t) $ error "AA"
+
+  return Reference (pos amper) t
+  
+  where
+    isRef Reference _ _ = True
+    isRef _ = False
+  
 types :: ParsecT [Token] State IO Token
-types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+types = try primTypes <|> compTypes
+
+primTypes :: ParsecT [Token] State IO Token
+primTypes = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+
+compTypes :: ParsecT [Token] State IO Token
+compTypes = referenceType
 
 -- Main program
 ---------------

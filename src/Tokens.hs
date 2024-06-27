@@ -289,6 +289,15 @@ arrowToken = tokenPrim show updatePos get_token
     get_token (Arrow pos) = Just $ Arrow pos
     get_token _ = Nothing
 
+-- | Parses ampersand (&) token
+-- The ampersand indicates a reference
+amperToken :: ParsecT [Token] st IO Token
+amperToken = tokenPrim show updatePos get_token
+  where
+    get_token (Amper pos) = Just $ Amper pos
+    get_token _ = Nothing
+
+
 -- Variable-related tokens 
 --------------------------
 

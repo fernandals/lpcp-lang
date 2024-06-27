@@ -35,6 +35,7 @@ typeof (Bool {..}) = "bool"
 typeof (Char {..}) = "char"
 typeof (String {..}) = "string"
 typeof (E {..}) = "error"
+typeof (Reference {..}) = "&" ++ typeof rtype
 typeof _ = ""
 
 -- | Extracts the token inside a Maybe type.
