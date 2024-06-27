@@ -43,6 +43,9 @@ tokens :-
   "toFloat"                               { \p s -> ToFloat $ getLC p}
   "toStr"                                 { \p s -> ToStr $ getLC p}
   "abs"                                   { \p s -> Abs $ getLC p}
+  "length"                                { \p s -> Length $ getLC p}
+  ":>"                                    {\p s -> Prepend $ getLC p}
+  "<:"                                    {\p s -> Append $ getLC p}
 
   -- Types
   "float"                                 { \p s -> Float $ getLC p }
@@ -111,6 +114,7 @@ data Type
     | B Bool
     | C Char
     | S String
+    | L Token Int [Type]
     | Rf String Token 
     deriving ( Eq )
 
@@ -120,6 +124,7 @@ instance Show Type where
     show (B b) = show b
     show (C c) = show c
     show (S s) = s
+    show (L t i l) = show l
 
 data Token
     = Module {pos :: Pos}
@@ -146,6 +151,8 @@ data Token
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
     | Reference {pos :: Pos, rtype :: Token}
+    | List {pos :: Pos, typeList :: Token}
+    | EmptyList {pos :: Pos}
     -- Literals
     | LiteralValue {pos :: Pos, val :: Type}
     -- Operators
@@ -171,6 +178,9 @@ data Token
     | GetFloat {pos :: Pos}
     | GetChar {pos :: Pos}
     | GetString {pos :: Pos}
+    | Length {pos :: Pos}
+    | Prepend {pos :: Pos}
+    | Append {pos :: Pos}
     -- Relations
     | Geq {pos :: Pos}
     | Leq {pos :: Pos}

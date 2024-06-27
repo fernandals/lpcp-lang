@@ -24,6 +24,17 @@ typeof' (F _) = "float"
 typeof' (B _) = "bool"
 typeof' (C _) = "char"
 typeof' (S _) = "string"
+typeof' (L t i _) = "[" ++ typeof t ++ "]"
+
+
+-- | Checks the type of literal provided.
+-- New type version.
+typeAsToken :: Type -> Pos -> Token
+typeAsToken (I i) p = Int p
+typeAsToken (F f) p = Float p
+typeAsToken (C c) p = Char p
+typeAsToken (S s) p = String p
+typeAsToken (L t i _) p = List p t
 
 -- | Checks the type of tokens provided.
 -- Old type version.
@@ -34,6 +45,8 @@ typeof (Float {..}) = "float"
 typeof (Bool {..}) = "bool"
 typeof (Char {..}) = "char"
 typeof (String {..}) = "string"
+typeof (List {..}) = "[" ++ typeof typeList ++ "]"
+typeof (EmptyList {..}) = "emptyList"
 typeof (E {..}) = "error"
 typeof (Reference {..}) = "&" ++ typeof rtype
 typeof _ = ""

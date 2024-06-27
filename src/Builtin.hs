@@ -92,3 +92,24 @@ getStringFun = tokenPrim show updatePos get_token
   where
     get_token (GetString pos) = Just $ GetString pos
     get_token _ = Nothing
+
+-- List tokens
+------------------------
+
+lengthFun:: ParsecT [Token] st IO Token
+lengthFun = tokenPrim show updatePos get_token
+  where
+    get_token (Length pos) = Just $ Length pos
+    get_token _ = Nothing
+
+appendFun:: ParsecT [Token] st IO Token
+appendFun = tokenPrim show updatePos get_token
+  where
+    get_token (Append pos) = Just $ Append pos
+    get_token _ = Nothing
+
+prependFun:: ParsecT [Token] st IO Token
+prependFun = tokenPrim show updatePos get_token
+  where
+    get_token (Prepend pos) = Just $ Prepend pos
+    get_token _ = Nothing
