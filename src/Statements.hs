@@ -6,7 +6,7 @@ import Builtin
 ---------------------------------
 
 -- Haskell Imports
-import Control.Monad (when)
+import Control.Monad (when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Expressions
 import ExpressionsParser
@@ -116,3 +116,79 @@ parseInput p = check p . readMaybe
   where
     check p (Just x) = x
     check p Nothing = error $ "Couldn't parse input at " ++ show p ++ ". Maybe the type doesn't match?\n"
+
+recordValue :: String -> ParsecT [Token] State IO Type
+recordValue recordName = do
+    begin <- beginBToken
+    fields <- fieldValues recordName
+    end <- endBToken
+    state <- getState
+    let typeTable = getTypes state
+    let definedFields = getRecordFields recordName typeTable
+    validateFields definedFields fields
+    return $ R recordName fields
+
+validateFields :: [(Token, Type)] -> [(Token, Token)] -> ParsecT [Token] State IO ()
+validateFields definedFields providedFields = do
+    let definedNames = map (name . fst) definedFields
+    let providedNames = map (name . fst) providedFields
+    let missingFields = filter (`notElem` providedNames) definedNames
+    unless (null missingFields) $
+        parserFail $ "Missing fields: " ++ show missingFields
+
+fieldValues :: String -> ParsecT [Token] State IO [(Token, Token)]
+fieldValues recordName = do
+    field <- fieldValue recordName
+    fields <- remainingFieldValues recordName
+    return (field : fields)
+
+remainingFieldValues :: String -> ParsecT [Token] State IO [(Token, Token)]
+remainingFieldValues recordName = 
+  ( do
+      comma <- commaToken
+      field <- fieldValue recordName
+      fields <- remainingFieldValues recordName
+      return (field : fields)
+  ) 
+  <|> return []
+
+fieldValue :: String -> ParsecT [Token] State IO (Token, Token)
+fieldValue recordName = do
+    id <- idToken
+    arrow <- arrowToken
+    state <- getState
+    (v, expr) <- getSt <|> expression
+    let typeTable = getTypes state
+    let expected_type = typeof' $ findField (name id) (getRecordFields recordName typeTable)
+    let actual_type = typeof v 
+    if (expected_type /= actual_type) then error $ "Type mismatch for field: " 
+                                                    ++ (name id) ++ " expected type: " 
+                                                    ++ show expected_type 
+                                                    ++ " actual type: " ++ show actual_type
+    else return (id, v)
+
+findField :: String -> [(Token, Type)] -> Type
+findField field [] = error $ "Field not found: " ++ field
+findField field ((token, typ):xs) = if field == name token then typ else findField field xs
+
+expressionValue :: ParsecT [Token] State IO Type
+expressionValue = do
+    expr <- expression
+    case expr of
+      (LiteralValue _ val, _) -> return val
+      _ -> parserFail "Invalid value for record field"
+
+fields :: Type -> [(Token, Token)]
+fields (R _ fs) = fs
+fields _ = error "Not a record type"
+
+recordAssignment :: String -> ParsecT [Token] State IO (Token, [Token])
+recordAssignment recordName = do
+  record <- recordValue recordName
+  return (LiteralValue (pos (fst (head (fields record)))) record, [])
+
+getRecordFields :: String -> TypeTable -> [(Token, Type)]
+getRecordFields recordName types =
+  case lookup recordName types of
+    Just fields -> fields
+    Nothing -> error $ "Record type " ++ recordName ++ " not found"

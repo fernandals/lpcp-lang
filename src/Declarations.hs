@@ -19,7 +19,18 @@ decls = do
 
 -- Types involved in declarations
 types :: ParsecT [Token] State IO Token
-types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
+types = try intToken <|> try floatToken <|> try boolToken <|> try charToken <|> try stringToken <|> recordType
+
+recordType :: ParsecT [Token] State IO Token 
+recordType = do
+  id <- idToken
+  state <- getState
+  let types = getTypes state
+  case types of 
+      [] -> parserFail $ "Unknown record type: " ++ name id
+      _ -> case lookup (name id) types of
+              Just fields -> return (RecordType (pos id) id)
+              Nothing -> parserFail $ "Unknown record type: " ++ name id
 
 varDecl :: ParsecT [Token] State IO [Token]
 varDecl = do
@@ -33,7 +44,7 @@ varDecl = do
 
   if canExecute flag act_name
     then do
-      (v, expr) <- getSt <|> expression
+      (v, expr) <- getSt <|> expression <|> recordAssignment (getRecordName decltype)
       let expected_type = typeof decltype
       let actual_type = typeof v
 
@@ -65,28 +76,28 @@ recordDecls = do
 
     state <- getState
 
-    updateState $ typeInsert (name id)
-    return $ [record, id, begin] ++ fields ++ [end]
+    updateState (typeInsert ((name id), fields))
+    return $ [record, id, begin, end]
 
-fieldDecls :: ParsecT [Token] State IO [Token]
+fieldDecls :: ParsecT [Token] State IO [(Token, Type)]
 fieldDecls = do
     field <- fieldDecl
     fields <- remainingFieldDecls
     return $ field ++ fields
 
-remainingFieldDecls :: ParsecT [Token] State IO [Token]
+remainingFieldDecls :: ParsecT [Token] State IO [(Token, Type)]
 remainingFieldDecls = 
   ( do
       comma <- commaToken
       field <- fieldDecl
       fields <- remainingFieldDecls
-      return $ [comma] ++ field ++ fields
+      return $ field ++ fields
   ) 
   <|> return []
 
-fieldDecl :: ParsecT [Token] State IO [Token]
+fieldDecl :: ParsecT [Token] State IO [(Token, Type)]
 fieldDecl = do
     name <- idToken
     colon <- colonToken
     typ <- types
-    return [name, colon, typ]
+    return [(name, tokenToType typ)]

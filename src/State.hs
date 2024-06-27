@@ -25,7 +25,7 @@ type ActEntry = (String, Int)
 
 type ActStack = [ActEntry]
 
-type TypeEntry = String
+type TypeEntry = (String, [(Token, Type)])
 
 type TypeTable = [TypeEntry]
 
@@ -95,13 +95,13 @@ popStack (flag, symt, (_, _) : stack, types, subp) = (flag, symt, stack, types, 
 -- TYPE operations
 
 typeInsert :: TypeEntry -> State -> State
-typeInsert name state =
+typeInsert typRec@(name,  fields) state =
   case getTypes state of 
-    [] -> setTypes [name] state
-    typ@(x : xs) -> 
-      if name == x
-        then error "This record already exists and can't be redeclared.\n"
-        else setTypes (name : typ) state
+    [] -> setTypes [typRec] state
+    typ@ ((name', fields) : xs) -> 
+      if name == name'
+        then error "The record already exists and can't be redeclared.\n"
+        else setTypes (typRec : typ) state
   
 -- SYMBOL TABLE operations
 

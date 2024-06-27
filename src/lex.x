@@ -111,6 +111,7 @@ data Type
     | B Bool
     | C Char
     | S String
+    | R String [(Token, Token)]
     deriving ( Eq )
 
 instance Show Type where
@@ -119,6 +120,7 @@ instance Show Type where
     show (B b) = show b
     show (C c) = show c
     show (S s) = s
+    show (R name r) = name ++ " { " ++ show r ++ " }"
 
 data Token
     = Module {pos :: Pos}
@@ -144,6 +146,7 @@ data Token
     | String {pos :: Pos}
     | Bool {pos :: Pos}
     | Char {pos :: Pos}
+    | RecordType {pos :: Pos, typeRecord :: Token}
     -- Literals
     | LiteralValue {pos :: Pos, val :: Type}
     -- Operators
