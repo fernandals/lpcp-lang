@@ -3,26 +3,29 @@
 module Parser where
 
 import Builtin
+import Lexer
+import State
+import Errors
+import Tokens
+import Utils
+import ExpressionsEvaluation
+
+
 import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bifunctor (first)
 import Data.Maybe (isNothing, maybe)
-import Errors
-import ExpressionsEvaluation
---import ExpressionsParser
-import Lexer
-import State
 import System.IO (hFlush, stdout)
 import Text.Parsec hiding (State)
 import Text.Read (get, readMaybe, lift)
-import Tokens
---import Types
-import Utils
+
 
 -- Types involved in declarations
 types :: ParsecT [Token] State IO Token
 types = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
+-- Main program
+---------------
 
 parser :: [Token] -> IO (Either ParseError [Token])
 parser = runParserT program defaultState "Error"
@@ -50,6 +53,9 @@ mainProgram = do
   block <- blockParser
 
   return $ main : block
+
+-- Program statements
+---------------------
 
 statements :: ParsecT [Token] State IO [Token]
 statements = try funCallSt <|> assignSt <|> printSt <|> printfSt
@@ -188,9 +194,6 @@ funDecl = do
 
   updateState $ pushSubprogram entry
   updateState popStack
-
-  (_, _, _, _, subp) <- getState
-  --liftIO $ print subp
 
   return $ fun_tk : fun_name : lp : toList params ++ rp : return_type ++ block
   where
@@ -350,7 +353,6 @@ elseSt = do
   updateState popStack
   return $ else_tk : block
 
--- caso v é true, parsear o bloco (como no if)
 whileSt :: ParsecT [Token] State IO [Token]
 whileSt = do
   fixp <- getInput
@@ -391,20 +393,13 @@ funCallSt = do
       actual_parameters <- expression `sepBy` commaToken
       rp <- endpToken
 
-      -- scoped_name actually dinamic scope
-      -- works because when getting the subp we know that
-      -- they can only be created in global scope
-
       let scoped_name = functionName (name f)      
       let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
       
       updateState $ pushStack f_name
 
-      -- liftIO $ print f_name
-      -- liftIO $ print $ removeBlockNames act_name
-
       if length params /= length actual_parameters
-        then error "faltou parametro"
+        then error "There are missing parameters!"
         else allocateParam actual_parameters params
 
       calle <- getInput
@@ -415,7 +410,6 @@ funCallSt = do
       (flag, _, (act_name, depth) : _, _, subp) <- getState
       let (f_name, params, return_type', code) = getSubp scoped_name (pos f) subp
 
-      -- talvez seja uma boa resumir isso ja q pouco importa o retorno
       if return_type /= return_type'
         then do
           updateState $ returnSubp f_name return_type
@@ -428,9 +422,7 @@ funCallSt = do
           updateState popStack
           return $ f : lp : concatMap snd actual_parameters ++ [rp]
 
--- Expressions
-
--- Parser
+-- Expressions Parser
 
 binExpr :: ParsecT [Token] State IO [Token]
 binExpr = do
@@ -486,7 +478,7 @@ bracktExpr = do
   return ([l] ++ exp ++ [r])
 
 
--- Seila
+-- Expresions File
 
 expression :: ParsecT [Token] State IO (Token, [Token])
 expression = term >>= expressionRemaining
@@ -551,7 +543,7 @@ evalSubTermRemaining n1 =
   )
     <|> return n1
 
-negSubFactor :: ParsecT [Token] State IO (Token, [Token]) -- pode dar ruim
+negSubFactor :: ParsecT [Token] State IO (Token, [Token])
 negSubFactor = try unaArithExpr <|> subFactor
 
 subFactor :: ParsecT [Token] State IO (Token, [Token])
@@ -654,15 +646,11 @@ unaArithExpr = do
     (LiteralValue p (F f), expr) -> return (LiteralValue p (F (-f)), op : expr)
     (Id p i, expr) -> return $ negValue (symTableGetVal (scopeNameVar act_name i) p state, op : expr)
 
--- Now the hard part: semantics!
 returnSt :: ParsecT [Token] State IO [Token]
 returnSt = do
   ret <- returnToken
 
   (flag, symt, (act_name, depth) : _, _, subp) <- getState
-  
-  --liftIO $ print subp
-  --liftIO $ print act_name
 
   if not flag
     then do
@@ -681,14 +669,10 @@ returnSt = do
           let actual_type = typeof v
 
           when (actual_type /= expected_type) $
-            error "different types"
+            error "Parameters with mismatched types."
 
           updateState $ returnSubp f_name (Just v)
           updateState $ setFlag False
-
-          --(flag, symt, (act_name, depth) : _, _, subp) <- getState
-
-          --liftIO $ print subp
 
           return $ ret : expr
 
@@ -710,10 +694,6 @@ funCall = do
       actual_parameters <- expression `sepBy` commaToken
       rp <- endpToken
 
-      -- scoped_name actually dinamic scope
-      -- works because when getting the subp we know that
-      -- they can only be created in global scope
-
       let scoped_name = functionName (name f)      
       let (f_name, params, return_type, code) = getSubp scoped_name (pos f) subp
       
@@ -722,11 +702,8 @@ funCall = do
         else do
           updateState $ pushStack f_name
 
-          -- liftIO $ print f_name
-          -- liftIO $ print $ removeBlockNames act_name
-
           if length params /= length actual_parameters
-            then error "faltou parametro"
+            then error "There are missing parameters!"
             else allocateParam actual_parameters params
 
           calle <- getInput
@@ -758,7 +735,7 @@ allocateParam ((actual_param, expr) : actual_params) ((formal_param, param_type)
   let actual_type = typeof actual_param
 
   when (expected_type /= actual_type) $
-    error "tipo errado"
+    error "Parameters with mismatched types."
 
   updateState $ symTableInsert (scopeNameVar act_name formal_param) (depth, Mut (0, 0), param_type, actual_param)
 

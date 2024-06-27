@@ -122,7 +122,7 @@ symTableInsert name entry@(depth, _, _, _) state =
         insert_state = symTableInsert name entry pop_state
 
 symTableUpdate :: String -> Token -> State -> State
-symTableUpdate "" val _ = error "Nao achei"
+symTableUpdate "" val _ = error "The variable wasn't declared."
 symTableUpdate name val state =
   case symTableFindUpdate name val (getSymTable state) of
     Nothing -> symTableUpdate (parentScopeVar name) val state
@@ -152,7 +152,7 @@ symTableFindUpdate name val (sym@(name', (dep, mod, t, val') : entries) : symt) 
           ++ ".\n"
 
 symTableGetVal :: String -> Pos -> State -> Token
-symTableGetVal "" pos _ = error "A varivável procurada nao ta nos escopos possiveis!!"
+symTableGetVal "" pos _ = error "Variable not found!"
 symTableGetVal name pos state =
   case symTableFindVal name (getSymTable state) of
     Nothing -> symTableGetVal (parentScopeVar name) pos state
@@ -235,11 +235,11 @@ defineSubp :: SubpEntry -> SubpTable -> SubpTable
 defineSubp entry [] = [entry]
 defineSubp entry@(fun_name, params, return_type, block) (subp@(fun_name', _, _, _) : table) =
   if fun_name == fun_name'
-    then error "already defined"
+    then error "Subprogram already defined."
     else subp : defineSubp entry table
 
 getSubp :: String -> Pos -> SubpTable -> SubpEntry
-getSubp "_global_" pos _ = error "nao achei o subp"
+getSubp "_global_" pos _ = error "Couldn't find subprogram."
 getSubp name pos subp = case findSubp name subp of
   Nothing -> getSubp (parentScopeBlock name) pos subp
   Just sub -> sub
