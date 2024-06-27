@@ -77,3 +77,40 @@ unexpectedOperatorError pos t =
     ++ "on position "
     ++ show pos
     ++ ".\n"
+
+
+-- | List errors.
+-----------------------------------------------------
+
+nonIntegerIndex :: Pos -> String
+nonIntegerIndex p =
+  "Non integer index at "
+    ++ show p
+    ++ ".\n"
+
+outOfBounds :: Pos -> Int -> String
+outOfBounds p len =
+  "Index out of bounds at "
+    ++ show p
+    ++ ".\nSize of list is "
+    ++ show len
+    ++ ".\n"
+
+indexInNonList :: Pos -> Token -> String
+indexInNonList p t =
+  "Illegal indexing at "
+    ++ show p
+    ++ ".\nAn "
+    ++ typeof t
+    ++ " isn't subscriptable.\n"
+
+nonHomogeneousList :: Pos -> Type -> Type -> String
+nonHomogeneousList p t t' =
+  "Non homogeneous list at "
+    ++ show p
+    ++ ".\n"
+    ++ "Expected "
+    ++ typeof' t
+    ++ ", got "
+    ++ typeof' t'
+    ++ ".\n"

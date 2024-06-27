@@ -6,6 +6,7 @@ import Builtin
 import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bifunctor (first)
+import Data.List (intersperse)
 import Data.Maybe (isNothing, maybe)
 import Errors
 import ExpressionsEvaluation
@@ -38,7 +39,14 @@ primTypes :: ParsecT [Token] State IO Token
 primTypes = intToken <|> floatToken <|> boolToken <|> charToken <|> stringToken
 
 compTypes :: ParsecT [Token] State IO Token
-compTypes = referenceType
+compTypes = listType <|>  referenceType 
+
+listType :: ParsecT [Token] State IO Token
+listType = do
+  l <- beginSBToken
+  t <- types
+  r <- endSBToken
+  return (List (pos l) t)
 
 -- Main program
 ---------------
@@ -74,7 +82,7 @@ mainProgram = do
 ---------------------
 
 statements :: ParsecT [Token] State IO [Token]
-statements = try funCallSt <|> assignSt <|> printSt <|> printfSt
+statements = try funCallSt  <|> try assignIndex <|> try prependStmt <|> try appendStmt <|> assignSt <|> printSt <|> printfSt
 
 assignSt :: ParsecT [Token] State IO [Token]
 assignSt = do
@@ -234,9 +242,12 @@ varDecl = do
 
   if canExecute flag act_name
     then do
-      (v, expr) <- getSt <|> expression
+      (v', expr) <- getSt <|> expression
       let expected_type = typeof decltype
-      let actual_type = typeof v
+      let v = v'
+      let emp = (isEmpty v') && (isList decltype) 
+      let actual_type = if emp then typeof decltype else typeof v'
+      let v = if emp then changeTypeOfList v' decltype else v'
 
       when (expected_type /= actual_type) $
         error $
@@ -255,6 +266,187 @@ varDecl = do
           assign
         ]
           ++ expr
+
+-- | List stmts
+
+assignIndex :: ParsecT [Token] State IO [Token]
+assignIndex = do
+  list_name <- idToken
+  sbl <- beginSBToken
+  (index, exprIndex) <- getSt <|> expression
+  sbr <- endSBToken
+  ids <- many many_indexs
+  assign <- assignToken
+
+  let l_name = name list_name
+  let l_p = pos list_name
+  
+  let allIdExprs = exprIndex ++ (concatMap snd ids)
+
+  let listIds = index : map fst ids
+
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
+
+  if canExecute flag act_name
+    then do
+      let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+
+      (v, expr) <- getSt <|> expression
+      v' <- tokenToType (v, expr)
+
+      let newVal =  setMat listIds val v -- canInsert val index v'
+      updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
+      return $ list_name : sbl : allIdExprs ++ [sbr] ++ [assign] ++ expr
+    else do
+      expr <- getStSyntactic <|> binExpr
+      return $ list_name : sbl : allIdExprs ++ [sbr] ++ [assign] ++ expr
+
+
+appendStmt :: ParsecT [Token] State IO [Token]
+appendStmt = do 
+  list_name <- idToken
+  ids <- many many_indexs
+  append <- appendFun
+  (e, expr) <- getSt <|> expression
+
+  let l_name = name list_name
+  let l_p = pos list_name
+  let type_e = typeof e 
+
+  let allIdExprs = concatMap snd ids
+  let listIds = map fst ids
+
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
+
+  if canExecute flag act_name
+    then do
+
+      let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+      let newVal = if listIds == [] then appendAux e val else appendMany listIds val e
+
+      updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
+      return $ [list_name]  ++ allIdExprs ++ [append] ++ expr
+
+    else
+      return $ [list_name]  ++ allIdExprs ++ [append] ++ expr
+
+
+prependStmt :: ParsecT [Token] State IO [Token]
+prependStmt = do 
+  (e, expr) <- getSt <|> expression
+  prepend <- prependFun
+  list_name <- idToken
+  ids <- many many_indexs
+
+  let l_name = name list_name
+  let l_p = pos list_name
+  let type_e = typeof e 
+
+
+  let allIdExprs = concatMap snd ids
+  let listIds = map fst ids
+
+  state@(flag, symt, (act_name, _) : stack, types, subp) <- getState
+
+  if canExecute flag act_name
+    then do
+
+      let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+      let newVal = if listIds == [] then prependAux e val else prependMany listIds val e
+
+      updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
+      return $ expr ++ [prepend] ++ allIdExprs ++ [list_name]
+
+    else
+      return $ expr ++ [prepend] ++ allIdExprs ++ [list_name]
+
+-- | Aux to list stmts
+-----------------------------------
+
+changeTypeOfList :: Token -> Token -> Token
+changeTypeOfList (LiteralValue p (L t i l)) (List p' t') = (LiteralValue p (L t' i l))
+changeTypeOfList _ _ = error $ "aquilo nao eh uma lista"
+
+isEmpty :: Token -> Bool
+isEmpty (LiteralValue p (L (EmptyList p') i l)) = True 
+isEmpty _ = False
+
+isList  :: Token -> Bool
+isList (List p' t) = True
+isList _ = False
+
+typeOfElement :: String -> String
+typeOfElement str = if length str <= 2
+                         then ""
+                         else tail (init str)
+
+-- prepend and append
+
+prependAux :: Token -> Token -> Token
+prependAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
+  if (typeof t) == (typeof' x)
+    then LiteralValue p (L t (i+1) (x:l))
+    else error $ "Error: Type mismatch prepend at " ++ show p' 
+prependAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
+prependAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+
+prependMany :: [Token] -> Token -> Token -> Token
+prependMany [] l v = prependAux v l
+prependMany (i:is) l v = setList' i l (prependMany is (getList i l) v)
+
+appendAux :: Token -> Token -> Token
+appendAux (LiteralValue p' x) (LiteralValue p (L t i l)) = 
+  if (typeof t) == (typeof' x)
+    then LiteralValue p (L t (i+1) (l++[x]))
+    else error $ "Error: Type mismatch append at " ++ show p' ++ show (typeof t) ++ show (typeof' x)
+appendAux (LiteralValue p' x) _ = error $ "Error: Is not a list at " ++ show p'
+appendAux x y = error $ "Error: invalid stmt " ++ show (pos x)
+
+appendMany :: [Token] -> Token -> Token -> Token
+appendMany [] l v = appendAux v l
+appendMany (i:is) l v = setList' i l (appendMany is (getList i l) v)
+
+-- assign with index
+
+setMat :: [Token] -> Token -> Token -> Token
+setMat (i:is) (LiteralValue p (L t len [])) v = error $ "Error: Attempt to access an index in an empty matrix or list at position " ++ show (pos i)
+setMat (i:is) (LiteralValue p (L t len (x:xs))) v 
+  | null is = setList' i (LiteralValue p (L t len (x:xs))) v
+  | otherwise = 
+    case x of 
+      L t' len ls -> setList' i (LiteralValue p (L t len (x:xs))) (setMat is (getList i (LiteralValue p (L t len (x:xs)))) v)
+      _ -> error $ "Error: Index out of bounds at position " ++ show (pos i)
+
+setList' :: Token -> Token -> Token -> Token
+setList' (LiteralValue p' (I i)) (LiteralValue p (L t len l)) value 
+  | i < 0          = error $ "Error: Negative index at position " ++ show p' 
+  | i > len        = error $ outOfBounds p len
+  | otherwise      = LiteralValue p (L t len (go i l))
+  where
+    go 0 (x:xs) = if typeof' x == typeof' (tokenToType' value)
+      then (tokenToType' value) : xs
+      else error $ "Error: Type mismatch at " ++ show (pos value)
+    go n (x: xs) = x : go (n-1) xs
+    go n [] = error $ "Error: Index out of bounds at position " ++ show p'
+setList' y  (LiteralValue p (L t len l)) value = error $ nonIntegerIndex (pos y)
+setList' _ y value  = error $ "Error: Attempt to insert an element non-list object"
+
+getList :: Token -> Token -> Token
+getList (LiteralValue p' (I i)) (LiteralValue p (L t len l)) =
+      if i < length l
+        then LiteralValue p $ l !! i
+        else error $ "lista grande"
+getList _ _ = error $ "nao eh um indice inteiro"
+
+tokenToType' :: Token -> Type
+tokenToType' (LiteralValue p (I i)) =  I i
+tokenToType' (LiteralValue p (F f)) = F f
+tokenToType' (LiteralValue p (C c)) =  C c
+tokenToType' (LiteralValue p (S s)) = S s
+tokenToType' (LiteralValue p (L t i l)) = L t i l
+
+-- | If parsers
+---------------------------------------------
 
 ifParser :: ParsecT [Token] State IO [Token]
 ifParser = do
@@ -598,10 +790,106 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <- try funCall <|> literalExpression <|> idExpression <|> convToFloat <|> convAbs
+  n <-  try funCall <|> try literalExpression  <|> try listIndex <|> list <|> idExpression <|> convToFloat <|> convAbs <|> lengthIter
   evalVar n
 
+-- List as expressions
+------------------------
+
+listIndex :: ParsecT [Token] State IO (Token, [Token])
+listIndex = do
+  list_name <- idToken
+  sbl <- beginSBToken
+  (index, expr) <- expression
+  sbr <- endSBToken
+
+  state@(_, _, (act_name, i) : _, _, _) <- getState
+
+  let l_p = pos list_name
+  let l_name = name list_name
+  let val = symTableGetVal (scopeNameVar act_name l_name) l_p state
+
+  ids <- many many_indexs
+
+  return $ case index of  
+    LiteralValue p (I i) -> (eval_ids val (index: map fst ids), sbl : expr ++ concatMap snd ids ++ [sbr])
+    _ -> error $ nonIntegerIndex l_p
+
+eval_ids :: Token -> [Token] -> Token
+eval_ids val [] = val
+eval_ids val (x:xs) = case x of  
+    LiteralValue p (I i) -> eval_ids (indexing val p i) xs
+    x -> error $ nonIntegerIndex (pos x)
+
+many_indexs :: ParsecT [Token] State IO (Token, [Token])
+many_indexs = do
+  sbl <- beginSBToken
+  (index, expr) <- expression
+  sbr <- endSBToken
+  return $ (index, sbl : expr ++ [sbr])
+
+indexing :: Token -> (Int,Int) -> Int -> Token
+indexing (LiteralValue p (L t len l)) l_p i =
+      if i < len
+        then LiteralValue p $ l !! i
+        else error $ outOfBounds l_p len
+indexing x l_p _ = error $ indexInNonList l_p x
+
+
+list :: ParsecT [Token] State IO (Token, [Token])
+list = do
+  l <- beginSBToken
+  elements <- expression `sepBy` commaToken
+  r <- endSBToken
+
+  lis <- tokensToTypes elements
+
+  let l_p = pos l
+      l_type = tokenTypeOfList lis l_p
+      l_len = length elements
+      comma = Comma (0, 0)
+      tokens = intersperse comma $ concatMap snd elements ++ [r]
+   in return (LiteralValue l_p (L l_type l_len lis), tokens)
+
+tokensToTypes :: [(Token, [Token])] -> ParsecT [Token] State IO [Type]
+tokensToTypes [] = return []
+tokensToTypes (x : xs) = do
+  t <- tokenToType x
+  ts <- tokensToTypes xs
+  return (t : ts)
+
+tokenToType :: (Token, [Token]) -> ParsecT [Token] State IO Type
+tokenToType x = do
+  case fst x of
+    LiteralValue p (I i) -> return $ I i
+    LiteralValue p (F f) -> return $ F f
+    LiteralValue p (C c) -> return $ C c
+    LiteralValue p (S s) -> return $ S s
+    LiteralValue p (L t i l) -> return $ L t i l
+
+lengthIter :: ParsecT [Token] State IO (Token, [Token])
+lengthIter = do
+  fun <- lengthFun
+  pl <- beginpToken
+  (v, expr) <- expression
+  pr <- endpToken
+  case v of
+    LiteralValue p (L t len l) -> return (LiteralValue p (I len), fun : pl : expr ++ [pr])
+    LiteralValue p (S s) -> return (LiteralValue p (I (length s)), fun : pl : expr ++ [pr])
+    _ -> error $ "Type mismatch at " ++ (show (pos pl)) ++ "."
+
+-- faz nova passada trocando empty pra algum que nao ta empty [1,2]
+tokenTypeOfList :: [Type] -> Pos -> Token
+tokenTypeOfList [] p = EmptyList p
+tokenTypeOfList [x] p = typeAsToken x p
+tokenTypeOfList (x : y : xs) p =
+  if typeof' x == typeof' y
+    then tokenTypeOfList (y : xs) p
+    else error $ nonHomogeneousList p x y
+
+
 -- Functions
+
 
 convToFloat :: ParsecT [Token] State IO (Token, [Token])
 convToFloat = do

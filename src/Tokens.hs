@@ -179,6 +179,20 @@ endBToken = tokenPrim show updatePos get_token
     get_token (EndB pos) = Just $ EndB pos
     get_token _ = Nothing
 
+-- | Parses begin bracket ({) token
+beginSBToken :: ParsecT [Token] st IO Token
+beginSBToken = tokenPrim show updatePos get_token
+  where
+    get_token (BeginSB pos) = Just $ BeginSB pos
+    get_token _ = Nothing
+
+-- | Parses end bracket (}) token
+endSBToken :: ParsecT [Token] st IO Token
+endSBToken = tokenPrim show updatePos get_token
+  where
+    get_token (EndSB pos) = Just $ EndSB pos
+    get_token _ = Nothing
+
 -- Boolean tokens
 -----------------
 
