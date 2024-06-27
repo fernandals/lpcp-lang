@@ -307,10 +307,10 @@ assignIndex = do
 
       let newVal =  setMat listIds val v -- canInsert val index v'
       updateState $ symTableUpdate (scopeNameVar act_name (name list_name)) newVal
-      return $ list_name : sbl : allIdExprs ++ [sbr] ++ [assign] ++ expr
+      return $ list_name : sbl : exprIndex ++ [sbr] ++ allIdExprs ++ [assign] ++ expr
     else do
       expr <- getStSyntactic <|> binExpr
-      return $ list_name : sbl : allIdExprs ++ [sbr] ++ [assign] ++ expr
+      return $ list_name : sbl : exprIndex ++ [sbr] ++ allIdExprs ++ [assign] ++ expr
 
 
 appendStmt :: ParsecT [Token] State IO [Token]
@@ -691,10 +691,19 @@ atom =
     ( do
         fmap snd funCall
     )
-    <|> ( do
-            a <- idToken <|> literalValueToken
-            return [a]
+    <|> try ( do 
+          fmap snd listIndex
         )
+        <|> try ( do 
+              fmap snd list
+            )
+            <|>
+            ( do
+                  a <- idToken <|> literalValueToken
+                  return [a]
+            )
+
+-- ALTERAR AQUIIII
 
 bracktExpr :: ParsecT [Token] State IO [Token]
 bracktExpr = do
@@ -805,7 +814,7 @@ idExpression = do
 
 atomExpression :: ParsecT [Token] State IO (Token, [Token])
 atomExpression = do
-  n <-  try funCall <|> try literalExpression  <|> try listIndex <|> list <|> idExpression <|> convToFloat <|> convAbs <|> lengthIter
+  n <-  try funCall <|> try literalExpression  <|> try listIndex <|> try idExpression <|> try list <|> convToFloat <|> convAbs <|> lengthIter
   evalVar n
 
 -- List as expressions
