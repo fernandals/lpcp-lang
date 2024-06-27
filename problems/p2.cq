@@ -1,0 +1,29 @@
+module Problem2
+
+fun main() {
+    mut input : int = getInt()
+    
+    mut i1 : int = 0
+    mut i2 : int = 0
+    mut i3 : int = 0
+    mut i4 : int = 0
+
+    while input >= 0 do {
+        if input >= 0 and input <= 25 {
+            i1 = i1 + 1
+        } elif input >= 26 and input <= 50 {
+            i2 = i2 + 1
+        } elif input >= 51 and input <= 75 {
+            i3 = i3 + 1
+        } elif input >= 76 and input <= 100 {
+            i4 = i4 + 1
+        }
+
+        input = getInt()
+    }
+
+    printf("#[0, 25]   = ", i1)
+    printf("#[26, 50]  = ", i2)
+    printf("#[51, 75]  = ", i3)
+    printf("#[76, 100] = ", i4)
+}
